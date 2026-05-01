@@ -9,7 +9,7 @@ README.md
 </pre>
 
 <details>
-<summary><b>📁 app/</b> — основной код приложения</summary>
+<summary><b>📁 app/</b> — основной код приложения (бэкенд)</summary>
 <pre>
 __init__.py
 main.py
@@ -95,6 +95,94 @@ s3_storage.py
 <pre>
 session.py
 init_db.py
+</pre>
+</details>
+</details>
+
+<details>
+<summary><b>📁 frontend/</b> — фронтенд (React/Vue)</summary>
+<pre>
+package.json
+index.html
+vite.config.js
+.env
+</pre>
+
+<details>
+<summary><b>📁 src/</b> — исходники фронтенда</summary>
+<pre>
+main.jsx
+App.jsx
+</pre>
+
+<details>
+<summary><b>📁 components/</b> — React/Vue компоненты</summary>
+<pre>
+Chat.jsx
+Message.jsx
+Sidebar.jsx
+Login.jsx
+Register.jsx
+</pre>
+</details>
+
+<details>
+<summary><b>📁 pages/</b> — страницы</summary>
+<pre>
+HomePage.jsx
+ProfilePage.jsx
+SettingsPage.jsx
+</pre>
+</details>
+
+<details>
+<summary><b>📁 hooks/</b> — хуки (React) / composables (Vue)</summary>
+<pre>
+useAuth.js
+useChat.js
+</pre>
+</details>
+
+<details>
+<summary><b>📁 store/</b> — управление состоянием (Redux/Pinia/Vuex)</summary>
+<pre>
+authSlice.js
+chatSlice.js
+</pre>
+</details>
+
+<details>
+<summary><b>📁 api/</b> — запросы к бэкенду</summary>
+<pre>
+client.js
+auth.js
+messages.js
+</pre>
+</details>
+
+<details>
+<summary><b>📁 styles/</b> — стили</summary>
+<pre>
+global.css
+theme.css
+</pre>
+</details>
+
+<details>
+<summary><b>📁 assets/</b> — статика</summary>
+<pre>
+logo.svg
+icons/
+images/
+</pre>
+</details>
+</details>
+
+<details>
+<summary><b>📁 public/</b> — публичные файлы</summary>
+<pre>
+favicon.ico
+robots.txt
 </pre>
 </details>
 </details>
