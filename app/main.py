@@ -1,0 +1,8 @@
+# Код, приведенный ниже является символическим и примерным
+
+from fastapi import FastAPI
+from app.api.v0.router import v0router
+from config import settings
+
+app = FastAPI(title=settings.PROJECT_NAME, version="0.0.0", description="Beta-version of messenger")
+app.include_router(v0router, prefix=settings.API_PREFIX)
