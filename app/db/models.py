@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import String, LargeBinary, DateTime, ForeignKey
+from sqlalchemy import String, LargeBinary, DateTime, ForeignKey, Integer
 from datetime import datetime
 from typing import List
 
@@ -22,7 +22,6 @@ class User(Base):
     dh_public_key: Mapped[bytes] = mapped_column(LargeBinary, unique=True, nullable=False)
 
     sessions: Mapped[List["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select") # При удалении пользователя удаляется закрепленная за ним сессия
-    # lazy задает стратегию подгрузки данных
     sent_messages: Mapped[List["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", lazy="select")
 
 class Session(Base):
@@ -40,6 +39,7 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    nonce: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
 
     sender: Mapped["User"] = relationship(back_populates="sent_messages", foreign_keys=[sender_id], lazy="selectin")
