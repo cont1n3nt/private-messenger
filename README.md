@@ -1,3 +1,11 @@
 # private-messenger
 
-big penis test message
+**Installation:**
+
+<code>pip install gyat</code>
+
+**Check version**
+
+<code> \>\>\> gyat.\_\_version\_\_ </code>
+
+> x.y.z
