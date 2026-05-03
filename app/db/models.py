@@ -16,18 +16,11 @@ class User(Base):
     """
     Базовый класс пользователя
 
-    Атрибуты:
-        :param id: уникальный идентификатор пользователя (ID)
-        :type id: :obj:`int`
-
-        :param username: юзернейм пользователя
-        :type username: :obj:`str`
-
-        :param sign_public_key: публичный ключ подписи
-        :type sign_public_key: :obj:`bytes`
-
-        :param dh_public_key: публичный ключ Диффи-Хеллмана
-        :type dh_public_key: :obj:`bytes`
+    Attributes:
+        id (int): Уникальный идентификатор пользователя.
+        username (str): Юзернейм пользователя.
+        sign_public_key (bytes): Публичный ключ подписи.
+        dh_public_key (bytes): Публичный ключ Диффи-Хеллмана.
     """
 
     __tablename__ = "users"
@@ -45,15 +38,10 @@ class Session(Base):
     """
     Базовый класс сессии
 
-    Атрибуты:
-        :param token: токен сессии
-        :type token: :obj:`str`
-
-        :param user_id: уникальный идентификатор пользователя (ID), за которым закреплена сессия
-        :type user_id: :obj:`int`
-
-        :param expires_at: дата и время, когда сессия станет недействительной
-        :type expires_at: :obj:`datetime`
+    Attributes:
+        token (str): Токен сессии.
+        user_id (int): Уникальный идентификатор пользователя, за которым закреплена сессия.
+        expires_at (datetime): Дата и время, когда сессия станет недействительной.
     """
 
     __tablename__ = "sessions"
@@ -68,21 +56,12 @@ class Message(Base):
     """
     Базовый класс сообщения
 
-    Атрибуты:
-        :param id: уникальный идентификатор сообшения (ID)
-        :type id: :obj:`int`
-
-        :param sender_id: уникальный идентификатор отправителя сообщения (ID)
-        :type sender_id: :obj:`int`
-
-        :param ciphertext: зашифрованный текст
-        :type ciphertext: :obj:`bytes`
-
-        :param nonce: "число, использованные единожды"
-        :type nonce: :obj:`int`
-
-        :param created_at: дата и время отправки сообщения
-        :type created_at: :obj:`datetime`
+    Attributes:
+        id (int): Уникальный идентификатор сообщения.
+        sender_id (int): Уникальный идентификатор отправителя сообщения.
+        ciphertext (bytes): Зашифрованный текст.
+        nonce (int): Число, использованное единожды (number used once).
+        created_at (datetime): Дата и время отправки сообщения.
     """
 
     __tablename__ = "messages"
