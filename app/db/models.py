@@ -33,6 +33,7 @@ class User(Base):
 
     sessions: Mapped[List["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select") # При удалении пользователя удаляется закрепленная за ним сессия
     sent_messages: Mapped[List["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", lazy="select")
+    challenges: Mapped[List["Challenge"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select") # При удалении пользователя удаляются закрепленные за ним челленджи
 
 class Session(Base):
     """
@@ -46,7 +47,7 @@ class Session(Base):
 
     __tablename__ = "sessions"
 
-    token: Mapped[str] = mapped_column(String(255), primary_key=True, unique=True, nullable=False)
+    token: Mapped[str] = mapped_column(String(255), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id")) # внешний ключ, связь с конкретным пользователем
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
@@ -62,6 +63,7 @@ class Message(Base):
         ciphertext (bytes): Зашифрованный текст.
         nonce (int): Число, использованное единожды (number used once).
         created_at (datetime): Дата и время отправки сообщения.
+        delete_at (datetime): Дата и время удаления сообщения.
     """
 
     __tablename__ = "messages"
@@ -71,5 +73,26 @@ class Message(Base):
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     nonce: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    delete_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     sender: Mapped["User"] = relationship(back_populates="sent_messages", foreign_keys=[sender_id], lazy="selectin")
+
+class Challenge(Base):
+    """
+    Базовый класс челленджа
+    
+    Attributes:
+        user_id (int): Уникальный идентификатор пользователя, за которым закреплен челлендж.
+        challenge (str): Уникальная, непредсказуемая, одноразовая фраза.
+        expires_at (datetime): Дата и время, когда челлендж станет недействительным.
+        used (int): Показывает, был ли использован уже (0 - нет, 1 - да)
+    """
+
+    __tablename__ = "challenges"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    challenge: Mapped[str] = mapped_column(String, primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used: Mapped[int] = mapped_column(Integer, default=0)
+
+    user: Mapped["User"] = relationship(back_populates="challenges", lazy="joined")
