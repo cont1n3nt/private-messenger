@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from models import User, Message, Session, Challenge
+from app.db.models import User, Message, Session, Challenge
 from typing import List, Union
 import datetime
 
@@ -58,7 +58,7 @@ async def delete_session(session: AsyncSession, token: str) -> None:
         await session.commit()
 
 async def delete_expired_sessions(session: AsyncSession) -> int:
-    stmt = delete(Session).where(Session.expires_at < datetime.datetime.now())
+    stmt = delete(Session).where(Session.expires_at < datetime.datetime.utcnow())
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount
@@ -92,7 +92,7 @@ async def get_messages_after(session: AsyncSession, message_id: int) -> List[Mes
     return messages
 
 async def delete_old_messages(session: AsyncSession) -> int:
-    stmt = delete(Message).where(Message.delete_at < datetime.datetime.now())
+    stmt = delete(Message).where(Message.delete_at < datetime.datetime.utcnow())
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount
@@ -106,7 +106,7 @@ async def create_challenge(session: AsyncSession, challenge_data: dict) -> Chall
     return challenge
 
 async def get_active_challenge(session: AsyncSession) -> Union[Challenge, None]:
-    stmt = select(Challenge).where(Challenge.expires_at >= datetime.datetime.now() and Challenge.used == 0)
+    stmt = select(Challenge).where(Challenge.expires_at >= datetime.datetime.utcnow() and Challenge.used == 0)
     result = await session.execute(stmt)
     challenge = result.scalar_one_or_none()
     return challenge
@@ -117,7 +117,7 @@ async def delete_challenge(session: AsyncSession, user_id: int) -> None:
     await session.commit()
 
 async def delete_expired_challenges(session: AsyncSession) -> int:
-    stmt = delete(Challenge).where(Challenge.expires_at < datetime.datetime.now() or Challenge.used == 1)
+    stmt = delete(Challenge).where(Challenge.expires_at < datetime.datetime.utcnow() or Challenge.used == 1)
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount
