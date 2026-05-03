@@ -13,6 +13,23 @@ class Base(DeclarativeBase):
     pass
 
 class User(Base):
+    """
+    Базовый класс пользователя
+
+    Атрибуты:
+        :param id: уникальный идентификатор пользователя (ID)
+        :type id: :obj:`int`
+
+        :param username: юзернейм пользователя
+        :type username: :obj:`str`
+
+        :param sign_public_key: публичный ключ подписи
+        :type sign_public_key: :obj:`bytes`
+
+        :param dh_public_key: публичный ключ Диффи-Хеллмана
+        :type dh_public_key: :obj:`bytes`
+    """
+
     __tablename__ = "users"
     
     # Mapped - это контейнер для типа
@@ -25,6 +42,20 @@ class User(Base):
     sent_messages: Mapped[List["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", lazy="select")
 
 class Session(Base):
+    """
+    Базовый класс сессии
+
+    Атрибуты:
+        :param token: токен сессии
+        :type token: :obj:`str`
+
+        :param user_id: уникальный идентификатор пользователя (ID), за которым закреплена сессия
+        :type user_id: :obj:`int`
+
+        :param expires_at: дата и время, когда сессия станет недействительной
+        :type expires_at: :obj:`datetime`
+    """
+
     __tablename__ = "sessions"
 
     token: Mapped[str] = mapped_column(String(255), primary_key=True, unique=True, nullable=False)
@@ -34,6 +65,26 @@ class Session(Base):
     user: Mapped["User"] = relationship(back_populates="sessions", lazy="joined")
 
 class Message(Base):
+    """
+    Базовый класс сообщения
+
+    Атрибуты:
+        :param id: уникальный идентификатор сообшения (ID)
+        :type id: :obj:`int`
+
+        :param sender_id: уникальный идентификатор отправителя сообщения (ID)
+        :type sender_id: :obj:`int`
+
+        :param ciphertext: зашифрованный текст
+        :type ciphertext: :obj:`bytes`
+
+        :param nonce: "число, использованные единожды"
+        :type nonce: :obj:`int`
+
+        :param created_at: дата и время отправки сообщения
+        :type created_at: :obj:`datetime`
+    """
+
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
