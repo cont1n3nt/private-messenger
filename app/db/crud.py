@@ -105,8 +105,8 @@ async def create_challenge(session: AsyncSession, challenge_data: dict) -> Chall
     session.add(challenge)
     return challenge
 
-async def get_active_challenge(session: AsyncSession) -> Union[Challenge, None]:
-    stmt = select(Challenge).where(Challenge.expires_at >= datetime.datetime.utcnow() and Challenge.used == 0)
+async def get_active_challenge(session: AsyncSession, user_id: int) -> Union[Challenge, None]:
+    stmt = select(Challenge).where(Challenge.expires_at >= datetime.datetime.now() and Challenge.used == 0 and Challenge.user_id == user_id)
     result = await session.execute(stmt)
     challenge = result.scalar_one_or_none()
     return challenge
