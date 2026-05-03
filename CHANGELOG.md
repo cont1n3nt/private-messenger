@@ -13,6 +13,9 @@
 ## Changed
 * Replaced direct model imports with namespaced imports (`app.db.models`)
 
+## Fixed
+* get_active_challenge() in crud
+
 ## [0.0.0] - 2026-05-01
 ## Added
 - CHANGELOG.md
