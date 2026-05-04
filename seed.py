@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import json
-import os
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
