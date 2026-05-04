@@ -49,7 +49,7 @@ async def request_challenge(
     await crud.create_challenge(db, {
         "user_id": user.id,
         "challenge": challenge_hex,
-        "expires_at": datetime.utcnow() + _CHALLENGE_TTL,
+        "expires_at": datetime.now(datetime.timezone.utc) + _CHALLENGE_TTL,
         "used": 0,
     })
     await db.commit()
@@ -93,7 +93,7 @@ async def verify_signature(
     await db.commit()
     
     token: str = secrets.token_hex(32)
-    expires_at = datetime.utcnow() + _SESSION_TTL
+    expires_at = datetime.now(datetime.timezone.utc) + _SESSION_TTL
     
     await crud.create_session(db, {
         "user_id": user.id,

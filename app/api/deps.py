@@ -31,7 +31,7 @@ async def get_current_user(
             detail="Token not found",
         )
     
-    if db_session.expires_at < datetime.utcnow():
+    if db_session.expires_at < datetime.now(datetime.timezone.utc):
         await crud.delete_session(db, token)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
