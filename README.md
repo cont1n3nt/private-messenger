@@ -1,6 +1,6 @@
 # Private Messenger 🔐
 
-A lightweight encrypted messaging system built for secure communication between trusted users.
+A lightweight encrypted messaging system built for secure communication between trusted users. 
 
 ---
 
