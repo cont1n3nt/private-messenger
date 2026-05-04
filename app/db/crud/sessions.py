@@ -81,7 +81,7 @@ async def delete_expired_sessions(session: AsyncSession) -> int:
         Функция автоматически выполняет commit после удаления.
     """
 
-    stmt = delete(Session).where(Session.expires_at < datetime.datetime.now(datetime.UTC))
+    stmt = delete(Session).where(Session.expires_at < datetime.datetime.now(datetime.timezone.utc)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount

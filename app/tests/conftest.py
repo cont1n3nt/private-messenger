@@ -1,4 +1,4 @@
-import pytest
+import pytest_asyncio
 from app.db import models
 from app.db.crud import *
 from app.tests.helpers import make_user_data, make_message_data, make_challenge_data
@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def session():
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     async with engine.begin() as conn:
@@ -23,21 +23,21 @@ async def session():
     
     await engine.dispose()
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user(session):
     u = await create_user(session, make_user_data())
     await session.commit()
     await session.refresh(u)
     return u
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_message(session, user):
     msg = await create_message(session, make_message_data(user.id))
     await session.commit()
     await session.refresh(msg)
     return msg
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_challenge(session, user):
     challenge = await create_challenge(session, make_challenge_data(user.id))
     await session.commit()

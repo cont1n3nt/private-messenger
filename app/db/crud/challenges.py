@@ -47,7 +47,7 @@ async def get_active_challenge(session: AsyncSession, user_id: int) -> Union[Cha
         - user_id соответствует указанному
     """
 
-    stmt = select(Challenge).where(and_(Challenge.expires_at >= datetime.datetime.now(datetime.UTC), Challenge.used == 0, Challenge.user_id == user_id))
+    stmt = select(Challenge).where(and_(Challenge.expires_at >= datetime.datetime.now(datetime.timezone.utc), Challenge.used == 0, Challenge.user_id == user_id)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     challenge = result.scalar_one_or_none()
     return challenge
@@ -90,7 +90,7 @@ async def delete_expired_challenges(session: AsyncSession) -> int:
         Функция автоматически выполняет commit после удаления.
     """
 
-    stmt = delete(Challenge).where(or_(Challenge.expires_at < datetime.datetime.now(datetime.UTC), Challenge.used == 1))
+    stmt = delete(Challenge).where(or_(Challenge.expires_at < datetime.datetime.now(datetime.timezone.utc), Challenge.used == 1)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount

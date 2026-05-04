@@ -102,7 +102,7 @@ async def delete_old_messages(session: AsyncSession) -> int:
         Функция автоматически выполняет commit после удаления.
     """
 
-    stmt = delete(Message).where(Message.delete_at < datetime.datetime.now(datetime.UTC))
+    stmt = delete(Message).where(Message.delete_at < datetime.datetime.now(datetime.timezone.utc)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount
