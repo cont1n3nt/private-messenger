@@ -1,6 +1,6 @@
 import pytest
 from app.db.crud import *
-from app.tests.helpers import make_user_data, make_message_data
+from app.db.tests.helpers import make_user_data, make_message_data
 from datetime import datetime, timedelta, timezone
 
 

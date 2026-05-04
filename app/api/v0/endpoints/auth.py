@@ -1,5 +1,4 @@
 import secrets
-import base64
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header

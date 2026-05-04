@@ -61,7 +61,8 @@ class Message(Base):
         id (int): Уникальный идентификатор сообщения.
         sender_id (int): Уникальный идентификатор отправителя сообщения.
         ciphertext (bytes): Зашифрованный текст.
-        nonce (int): Число, использованное единожды (number used once).
+        nonce (bytes): Nonce для расшифровки (24 байта, XChaCha20).
+        ПОМЕНЯЛ С ИНТ НА БАЙТЫ
         created_at (datetime): Дата и время отправки сообщения.
         delete_at (datetime): Дата и время удаления сообщения.
     """
@@ -71,7 +72,7 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    nonce: Mapped[int] = mapped_column(Integer, nullable=False)
+    nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     delete_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 

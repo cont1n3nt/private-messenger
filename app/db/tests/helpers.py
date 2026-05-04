@@ -12,7 +12,7 @@ def make_message_data(sender_id, days=1):
     return {
         "sender_id": sender_id,
         "ciphertext": b"encrypted_text",
-        "nonce": 12345,
+        "nonce": bytes.fromhex("ab" * 24),
         "delete_at": datetime.now(timezone.utc) + timedelta(days=days),
     }
 

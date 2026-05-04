@@ -1,7 +1,7 @@
 import pytest_asyncio
 from app.db import models
 from app.db.crud import *
-from app.tests.helpers import make_user_data, make_message_data, make_challenge_data
+from app.db.tests.helpers import make_user_data, make_message_data, make_challenge_data
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
