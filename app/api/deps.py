@@ -1,7 +1,7 @@
 from fastapi import Depends, Header, HTTPException, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from app.db.session import get_session
 from app.db.models import User
@@ -31,7 +31,7 @@ async def get_current_user(
             detail="Token not found",
         )
     
-    if db_session.expires_at < datetime.now(datetime.timezone.utc):
+    if db_session.expires_at < datetime.now(timezone.utc):
         await crud.delete_session(db, token)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

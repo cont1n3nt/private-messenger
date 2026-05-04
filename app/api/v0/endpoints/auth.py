@@ -1,6 +1,6 @@
 import secrets
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 
@@ -20,6 +20,8 @@ from app.schemas import (
     TokenData,
     MeData,
 )
+
+import hmac
 
 router = APIRouter()
 
@@ -49,7 +51,7 @@ async def request_challenge(
     await crud.create_challenge(db, {
         "user_id": user.id,
         "challenge": challenge_hex,
-        "expires_at": datetime.now(datetime.timezone.utc) + _CHALLENGE_TTL,
+        "expires_at": datetime.now(timezone.utc) + _CHALLENGE_TTL,
         "used": 0,
     })
     await db.commit()
@@ -77,7 +79,7 @@ async def verify_signature(
     
     challenge = await crud.get_active_challenge(db, user.id)
     
-    if challenge is None or challenge.challenge != body.challenge:
+    if challenge is None or not hmac.compare_digest(challenge.challenge, body.challenge):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid challenge",
@@ -93,7 +95,7 @@ async def verify_signature(
     await db.commit()
     
     token: str = secrets.token_hex(32)
-    expires_at = datetime.now(datetime.timezone.utc) + _SESSION_TTL
+    expires_at = datetime.now(timezone.utc) + _SESSION_TTL
     
     await crud.create_session(db, {
         "user_id": user.id,
