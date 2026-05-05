@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v0.router import v0router
 from app.config import settings
 from app.db.init_db import init_db
+from app.api.v0.endpoints.ws import router as ws_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,3 +33,4 @@ app.add_middleware(
 
 
 app.include_router(v0router, prefix=settings.API_PREFIX)
+app.include_router(ws_router, prefix=settings.API_PREFIX)

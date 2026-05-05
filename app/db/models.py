@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, LargeBinary, DateTime, ForeignKey, Integer
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 # ORM-модель:
@@ -49,7 +49,7 @@ class Session(Base):
 
     token: Mapped[str] = mapped_column(String(255), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id")) # внешний ключ, связь с конкретным пользователем
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="sessions", lazy="joined")
 
@@ -73,8 +73,8 @@ class Message(Base):
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
-    delete_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    delete_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     sender: Mapped["User"] = relationship(back_populates="sent_messages", foreign_keys=[sender_id], lazy="selectin")
 
@@ -93,7 +93,7 @@ class Challenge(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     challenge: Mapped[str] = mapped_column(String, primary_key=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used: Mapped[int] = mapped_column(Integer, default=0)
 
     user: Mapped["User"] = relationship(back_populates="challenges", lazy="joined")
