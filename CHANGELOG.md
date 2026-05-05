@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.0] - 2026-05-05 - 2026-05-06
+## Added
+* Added new endpoints
+* Added websocker manager 
+## Changed
+* Refactor all project structure
+* Simple changes of object types in `models.py`
+
+## Fixed
+* Fixed all datetime issues in `models.py` and `deps.py`
+
 ## [0.0.0] - 2026-05-03
 ## Added
 * Added challenge-response authentication flow using Ed25519 signatures
