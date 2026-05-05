@@ -1,0 +1,89 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# =========================
+# Node.js / Frontend
+# =========================
+node_modules/
+
+# Production builds
+build/
+dist/
+
+# Cache / temp
+.cache/
+.temp/
+.tmp/
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage / tests
+coverage/
+playwright-report/
+test-results/
+
+# Vite
+vite.svg
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# =========================
+# Databases
+# =========================
+*.db
+*.sqlite
+
+# =========================
+# Keys / Secrets
+# =========================
+keys/
+secrets/
+*.pem
+*.key
+.pypirc
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Python packaging
+# =========================
+*.egg-info/
