@@ -50,18 +50,15 @@ async def get_latest_messages(session: AsyncSession, limit: int) -> List[Message
         limit (int): Максимальное количество сообщений для возврата.
 
     Returns:
-        List[Message]: Список сообщений, отсортированных по id в порядке возрастания,
-                      ограниченный параметром limit.
-
-    Note:
-        Сообщения возвращаются начиная с наименьшего id (самые старые),
-        а не с самых новых. Для получения действительно последних сообщений
-        может потребоваться сортировка по убыванию id.
+        List[Message]: Список последних сообщений, отсортированных по id
+                       в порядке возрастания (хронологический порядок).
     """
 
-    stmt = select(Message).order_by(Message.id.asc()).limit(limit)
+    stmt = select(Message).order_by(Message.id.desc()).limit(limit)
     result = await session.execute(stmt)
-    return list(result.scalars().all())
+    messages = list(result.scalars().all())
+    messages.reverse()
+    return messages
 
 async def get_messages_after(session: AsyncSession, message_id: int) -> List[Message]:
     """
@@ -106,3 +103,18 @@ async def delete_old_messages(session: AsyncSession) -> int:
     result = await session.execute(stmt)
     await session.commit()
     return int(result.rowcount)
+
+async def get_messages_by_sender(session: AsyncSession, sender_id: int) -> List[Message]:
+    """
+    Получает все сообщения указанного отправителя
+
+    Args:
+        session: Асинхронная сессия SQLAlchemy.
+        sender_id: ID отправителя.
+
+    Returns:
+        Список сообщений отправителя, отсортированных по id.
+    """
+    stmt = select(Message).where(Message.sender_id == sender_id).order_by(Message.id.asc())
+    result = await session.execute(stmt)
+    return list(result.scalars().all())

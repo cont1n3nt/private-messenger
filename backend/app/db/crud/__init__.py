@@ -3,12 +3,14 @@ from .challenges import (
     get_active_challenge,
     delete_challenge,
     delete_expired_challenges,
+    use_challenge,
 )
 from .messages import (
     create_message,
     get_messages,
     get_latest_messages,
     get_messages_after,
+    get_messages_by_sender,
     delete_old_messages,
 )
 from .sessions import (
@@ -34,11 +36,13 @@ __all__ = [
     "get_active_challenge",
     "delete_challenge",
     "delete_expired_challenges",
+    "use_challenge",
     # messages
     "create_message",
     "get_messages",
     "get_latest_messages",
     "get_messages_after",
+    "get_messages_by_sender",
     "delete_old_messages",
     # sessions
     "create_session",

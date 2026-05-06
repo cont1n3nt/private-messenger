@@ -80,7 +80,7 @@ async def create_message(
         APIResponse с MessageOut (id, sender_id, ciphertext, nonce, created_at).
     """
 
-    nonce_bytes = base64.b64decode(message_data.nonce)
+    nonce_bytes = bytes.fromhex(message_data.nonce)
     
     message_dict = {
         "sender_id": current_user.id,
@@ -150,12 +150,7 @@ async def get_user_messages(
 
     Returns:
         APIResponse со списком MessageOut (id, sender_id, ciphertext, nonce, created_at).
-
-    Note:
-        Метод не рекомендуется к использованию из-за возможной скорости выполнения.
     """
 
-    all_messages = await crud.get_messages(db)
-    user_messages = [m for m in all_messages if m.sender_id == current_user.id]
-    
+    user_messages = await crud.get_messages_by_sender(db, current_user.id)
     return APIResponse.ok([MessageOut.model_validate(m) for m in user_messages])

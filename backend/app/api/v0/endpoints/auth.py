@@ -20,12 +20,16 @@ from app.schemas import (
     MeData,
 )
 
-import hmac
-
 router = APIRouter()
 
 _CHALLENGE_TTL = timedelta(minutes=5)
 _SESSION_TTL = timedelta(hours=24)
+
+_AUTH_FAILED = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Authentication failed",
+)
+
 
 @router.post(
     "/challenge",
@@ -36,25 +40,24 @@ async def request_challenge(
     body: ChallengeRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[ChallengeData]:
-    
-    user: User | None = await crud.get_user_by_username(db, body.username)
-    
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    
+    """
+    Всегда возвращает 200 + challenge — одинаковый ответ независимо от того,
+    существует ли пользователь. Это предотвращает перебор имён пользователей.
+    Challenge сохраняется в БД только если пользователь существует;
+    при несуществующем юзере verify всегда вернёт 401.
+    """
     challenge_hex: str = secrets.token_hex(32)
-    
-    await crud.create_challenge(db, {
-        "user_id": user.id,
-        "challenge": challenge_hex,
-        "expires_at": datetime.now(timezone.utc) + _CHALLENGE_TTL,
-        "used": 0,
-    })
-    await db.commit()
-    
+
+    user: User | None = await crud.get_user_by_username(db, body.username)
+    if user is not None:
+        await crud.create_challenge(db, {
+            "user_id": user.id,
+            "challenge": challenge_hex,
+            "expires_at": datetime.now(timezone.utc) + _CHALLENGE_TTL,
+            "used": 0,
+        })
+        await db.commit()
+
     return APIResponse.ok(ChallengeData(challenge=challenge_hex))
 
 
@@ -67,42 +70,38 @@ async def verify_signature(
     body: VerifyRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[TokenData]:
-    
+    """
+    Все ошибки авторизации возвращают одинаковый 401 "Authentication failed"
+    — предотвращает утечку информации о существовании пользователей.
+
+    Challenge помечается как used атомарным UPDATE (use_challenge),
+    что устраняет TOCTOU race condition при параллельных запросах.
+    """
     user: User | None = await crud.get_user_by_username(db, body.username)
-    
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    
-    challenge = await crud.get_active_challenge(db, user.id)
-    
-    if challenge is None or not hmac.compare_digest(challenge.challenge, body.challenge):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid challenge",
-        )
-    
-    _verify_ed25519(
+        raise _AUTH_FAILED
+
+    if not _verify_ed25519(
         public_key_bytes=user.sign_public_key,
         signature_hex=body.signature,
         message_hex=body.challenge,
-    )
-    
-    challenge.used = 1
-    await db.commit()
-    
+    ):
+        raise _AUTH_FAILED
+
+    used: bool = await crud.use_challenge(db, body.challenge, user.id)
+    if not used:
+        raise _AUTH_FAILED
+
     token: str = secrets.token_hex(32)
     expires_at = datetime.now(timezone.utc) + _SESSION_TTL
-    
+
     await crud.create_session(db, {
         "user_id": user.id,
         "token": token,
         "expires_at": expires_at,
     })
     await db.commit()
-    
+
     return APIResponse.ok(TokenData(token=token, expires_at=expires_at))
 
 @router.post(
@@ -136,25 +135,17 @@ def _verify_ed25519(
     public_key_bytes: bytes,
     signature_hex: str,
     message_hex: str,
-) -> None:
+) -> bool:
     """
-    Как работывет:
-    
-    клиент взял challenge (hex), подписал своим приватным ключом,
-    мы проверяем подпись его публичным ключом из БД.
-    Если подпись неверна — значит у клиента нет приватного ключа → не пускаем.
+    Проверяет Ed25519 подпись. Возвращает True если подпись валидна, False иначе.
+    Не бросает исключений — вызывающий код решает как обработать ошибку.
     """
     try:
         public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
-
-
         public_key.verify(
             bytes.fromhex(signature_hex),
             bytes.fromhex(message_hex),
         )
-
+        return True
     except (InvalidSignature, ValueError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Signature verification failed",
-        )
+        return False

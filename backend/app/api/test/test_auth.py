@@ -73,9 +73,14 @@ class TestRequestChallenge:
         assert len(body["data"]["challenge"]) == 64
 
     @pytest.mark.asyncio
-    async def test_returns_404_for_unknown_user(self, client):
+    async def test_returns_200_for_unknown_user(self, client):
+        """Challenge всегда возвращает 200 — предотвращает перебор имён."""
         resp = await client.post("/api/v0/auth/challenge", json={"username": "ghost"})
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert "challenge" in body["data"]
+        assert len(body["data"]["challenge"]) == 64
 
     @pytest.mark.asyncio
     async def test_missing_username_field(self, client):
@@ -126,7 +131,7 @@ class TestVerifySignature:
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_wrong_challenge_returns_400(self, client, ed_user, challenge_for_ed_user):
+    async def test_wrong_challenge_returns_401(self, client, ed_user, challenge_for_ed_user):
         user, private_key = ed_user
         wrong_challenge = secrets.token_hex(32)
         sig_hex = private_key.sign(bytes.fromhex(wrong_challenge)).hex()
@@ -136,16 +141,17 @@ class TestVerifySignature:
             "challenge": wrong_challenge,
             "signature": sig_hex,
         })
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_unknown_user_returns_404(self, client):
+    async def test_unknown_user_returns_401(self, client):
+        """Verify не раскрывает существование пользователя — всегда 401."""
         resp = await client.post("/api/v0/auth/verify", json={
             "username": "nobody",
             "challenge": "ab" * 32,
             "signature": "cd" * 64,
         })
-        assert resp.status_code == 404
+        assert resp.status_code == 401
 
     @pytest.mark.asyncio
     async def test_challenge_field_must_be_hex64(self, client, ed_user):
