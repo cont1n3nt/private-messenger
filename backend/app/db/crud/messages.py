@@ -36,7 +36,7 @@ async def get_messages(session: AsyncSession) -> List[Message]:
         List[Message]: Список всех сообщений, отсортированных по первичному ключу (id).
     """
 
-    stmt = select(Message)
+    stmt = select(Message).order_by(Message.id.asc())
     result = await session.execute(stmt)
     messages = result.scalars().all()
     return list(messages)

@@ -25,8 +25,8 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
-        except:
-            await session.rollback() # Делаем откатик при ошибке
+        except Exception:
+            await session.rollback()
             raise
         finally:
-            pass # оставляем, потом логгирование добавим для дебага
+            pass

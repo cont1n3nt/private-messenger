@@ -7,22 +7,9 @@ import datetime
 # NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
 
 async def create_challenge(session: AsyncSession, challenge_data: dict) -> Challenge:
-    """
-    Создает новый челлендж для пользователя, предварительно удаляя все существующие челленджи этого пользователя.
-    Не выполняет commit — вызывающий код должен сделать session.commit().
-
-    Args:
-        session: Асинхронная сессия SQLAlchemy.
-        challenge_data: Словарь с данными челленджа (user_id, challenge, expires_at, used).
-
-    Returns:
-        Challenge: Созданный объект челленджа (pending, нужен commit).
-    """
-
-    stmt = delete(Challenge).where(Challenge.user_id == challenge_data["user_id"]).execution_options(synchronize_session=False)
-    await session.execute(stmt)
     challenge = Challenge(**challenge_data)
     session.add(challenge)
+    await session.flush()
     return challenge
 
 async def get_active_challenge(session: AsyncSession, user_id: int) -> Union[Challenge, None]:

@@ -13,7 +13,8 @@ from app.db import crud
 
 
 USERNAMES: list[str] = ["kosmo", "ayala13rus", "treizd"]
-KEYS_DIR: Path = Path("keys")
+BASE_DIR = Path(__file__).resolve().parent
+KEYS_DIR: Path = BASE_DIR / "keys"
 
 
 def generate_keypairs() -> dict[str, bytes]:

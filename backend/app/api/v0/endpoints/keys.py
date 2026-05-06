@@ -21,24 +21,6 @@ async def keys_init(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> APIResponse[KeysData]:
-    """
-    загружает или обновляет публичные ключи авторизованного пользователя
-    принимает Ed25519 и X25519 ключи в формате base64
-    !! вызывается фронтом при первом входе после генерации ключей,
-    или при смене ключей
-
-    Args:
-        body: KeysInitRequest с полями sign_public_key и dh_public_key (base64).
-        db: Сессия БД.
-        current_user: Авторизованный пользователь из токена.
-
-    Returns:
-        APIResponse с обновлёнными публичными ключами.
-
-    Raises:
-        HTTPException 400: Если ключи в неверном формате или неверной длины.
-        HTTPException 404: Если пользователь не найден.
-    """
     try:
         sign_bytes = base64.b64decode(body.sign_public_key)
         dh_bytes = base64.b64decode(body.dh_public_key)
@@ -52,6 +34,18 @@ async def keys_init(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid key length, expected 32 bytes for both keys",
+        )
+
+    if current_user.sign_public_key == sign_bytes and current_user.dh_public_key == dh_bytes:
+        return APIResponse.ok(KeysData(
+            sign_public_key=body.sign_public_key,
+            dh_public_key=body.dh_public_key,
+        ))
+
+    if current_user.sign_public_key or current_user.dh_public_key:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Public keys already set and do not match. Key replacement is not allowed.",
         )
 
     user = await crud.update_user_keys(

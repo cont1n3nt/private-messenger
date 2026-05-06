@@ -2,13 +2,14 @@ from fastapi import Depends, Header, HTTPException, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
+from typing import AsyncGenerator
 
 from app.db.session import get_session
 from app.db.models import User
 from app.db import crud
 
-async def get_db(session: AsyncSession = Depends(get_session)) -> AsyncSession:
-    return session
+async def get_db(session: AsyncSession = Depends(get_session)) -> AsyncGenerator[AsyncSession, None]:
+    yield session
 
 
 async def get_current_user(
