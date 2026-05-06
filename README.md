@@ -1,5 +1,5 @@
 # Private Messenger 🔐
-PIZDA 2
+PIZDA 3
 A lightweight encrypted messaging system built for secure communication between trusted users. 
 
 ---
