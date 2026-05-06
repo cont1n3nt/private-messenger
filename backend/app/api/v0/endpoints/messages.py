@@ -5,6 +5,7 @@ import base64
 from datetime import datetime, timezone, timedelta
 
 from app.api.deps import get_db, get_current_user
+from app.api.v0.ws_manager import manager
 from app.db.models import User
 from app.db import crud
 from app.schemas import APIResponse
@@ -97,7 +98,13 @@ async def create_message(
     await db.commit()
     await db.refresh(message)
     
-    return APIResponse.ok(MessageOut.model_validate(message))
+    msg_out = MessageOut.model_validate(message)
+    await manager.broadcast({
+        "type": "new_message",
+        "data": msg_out.model_dump(mode="json"),
+    })
+    
+    return APIResponse.ok(msg_out)
 
 
 @router.delete(
