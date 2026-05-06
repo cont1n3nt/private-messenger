@@ -1,12 +1,9 @@
-import os
-from dotenv import load_dotenv
+from app.config import Settings
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_async_engine(DATABASE_URL, pool_size=20, max_overflow=10, pool_pre_ping=True)
+settings = Settings()
+engine = create_async_engine(url=settings.DATABASE_URL, pool_size=20, max_overflow=10, pool_pre_ping=True)
 # можно добавить параметр echo=True для логгирования всех sql запросов в консоль
 # pool_size=20 - макс кол-во соединений с БД, которые будут храниться
 # max_overflow=10 - кол-во доп. соединений сверх pool_size в момент пиковой нагрузки

@@ -35,7 +35,7 @@ class ConnectionManager:
 
         self._connections[user_id] = websocket
         
-    def disconnect(self, user_id: int) -> None:
+    async def disconnect(self, user_id: int) -> None:
         """
         Удаляет соединение пользователя.
 

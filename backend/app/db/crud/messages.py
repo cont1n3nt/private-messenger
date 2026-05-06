@@ -39,7 +39,7 @@ async def get_messages(session: AsyncSession) -> List[Message]:
     stmt = select(Message)
     result = await session.execute(stmt)
     messages = result.scalars().all()
-    return messages
+    return list(messages)
 
 async def get_latest_messages(session: AsyncSession, limit: int) -> List[Message]:
     """
@@ -61,7 +61,7 @@ async def get_latest_messages(session: AsyncSession, limit: int) -> List[Message
 
     stmt = select(Message).order_by(Message.id.asc()).limit(limit)
     result = await session.execute(stmt)
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 async def get_messages_after(session: AsyncSession, message_id: int) -> List[Message]:
     """
@@ -82,7 +82,7 @@ async def get_messages_after(session: AsyncSession, message_id: int) -> List[Mes
     stmt = select(Message).where(Message.id > message_id)
     result = await session.execute(stmt)
     messages = result.scalars().all()
-    return messages
+    return list(messages)
 
 async def delete_old_messages(session: AsyncSession) -> int:
     """
@@ -105,4 +105,4 @@ async def delete_old_messages(session: AsyncSession) -> int:
     stmt = delete(Message).where(Message.delete_at < datetime.datetime.now(datetime.timezone.utc)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     await session.commit()
-    return result.rowcount
+    return int(result.rowcount)

@@ -84,7 +84,7 @@ async def delete_expired_sessions(session: AsyncSession) -> int:
     stmt = delete(Session).where(Session.expires_at < datetime.datetime.now(datetime.timezone.utc)).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
     await session.commit()
-    return result.rowcount
+    return int(result.rowcount)
 
 async def delete_all_sessions(session: AsyncSession) -> int:
     """
@@ -107,4 +107,4 @@ async def delete_all_sessions(session: AsyncSession) -> int:
     stmt = delete(Session)
     result = await session.execute(stmt)
     await session.commit()
-    return result.rowcount
+    return int(result.rowcount)

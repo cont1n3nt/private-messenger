@@ -31,7 +31,10 @@ async def _authenticate_ws(token: str) -> int | None:
             await crud.delete_session(db, token)
             return None
         
-        return db_session.user_id
+        user_id = db_session.user_id
+        if isinstance(user_id, int): # добавил, чтобы MyPy не ругался
+            return user_id
+        return None
     
 @router.websocket("/ws")
 async def websocket_endpoint(

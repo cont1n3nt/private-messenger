@@ -129,7 +129,7 @@ async def delete_old_messages(
     response_model=APIResponse[List[MessageOut]],
     summary="Get all messages written by user",
 )
-async def delete_old_messages(
+async def get_user_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> APIResponse[List[MessageOut]]:

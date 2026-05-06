@@ -91,6 +91,6 @@ async def delete_expired_challenges(session: AsyncSession) -> int:
     """
 
     stmt = delete(Challenge).where(or_(Challenge.expires_at < datetime.datetime.now(datetime.timezone.utc), Challenge.used == 1)).execution_options(synchronize_session=False)
-    result = await session.execute(stmt)
+    result  = await session.execute(stmt)
     await session.commit()
-    return result.rowcount
+    return int(result.rowcount)

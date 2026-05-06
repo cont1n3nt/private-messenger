@@ -95,7 +95,7 @@ async def get_all_users(session: AsyncSession) -> List[User]:
     stmt = select(User)
     result = await session.execute(stmt)
     users = result.scalars().all()
-    return users
+    return list(users)
 
 async def delete_user(session: AsyncSession, user_id: int) -> None: # Каскадное удаление
     """
