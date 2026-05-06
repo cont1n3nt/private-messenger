@@ -1,8 +1,7 @@
-from app.config import Settings
+from app.config import settings
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator
 
-settings = Settings()
 engine = create_async_engine(url=settings.DATABASE_URL, pool_size=20, max_overflow=10, pool_pre_ping=True)
 # можно добавить параметр echo=True для логгирования всех sql запросов в консоль
 # pool_size=20 - макс кол-во соединений с БД, которые будут храниться

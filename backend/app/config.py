@@ -7,7 +7,7 @@ ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     DATABASE_URL = "sqlite+aiosqlite:///private_messenger.db"
-    TEST_DATABASE_URL = "sqlite+aiosqlite:///test_messenger.db"
+    TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
     API_PREFIX: str = "/api/v0"
     PROJECT_NAME: str = "Private Messenger"
