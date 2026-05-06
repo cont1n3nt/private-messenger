@@ -20,6 +20,7 @@ VALID_DH_KEY   = base64.b64encode(b"\xBB" * 32).decode()
 
 class TestKeysInit:
 
+    @pytest.mark.asyncio
     async def test_upload_valid_keys(self, client, auth_headers):
         resp = await client.post("/api/v0/keys/init", json={
             "sign_public_key": VALID_SIGN_KEY,
@@ -32,6 +33,7 @@ class TestKeysInit:
         assert body["data"]["sign_public_key"] == VALID_SIGN_KEY
         assert body["data"]["dh_public_key"]   == VALID_DH_KEY
 
+    @pytest.mark.asyncio
     async def test_update_keys_twice(self, client, auth_headers):
         """Повторный вызов должен обновить ключи без ошибок."""
         new_sign = base64.b64encode(b"\xCC" * 32).decode()
@@ -52,6 +54,7 @@ class TestKeysInit:
         assert body["data"]["sign_public_key"] == new_sign
         assert body["data"]["dh_public_key"]   == new_dh
 
+    @pytest.mark.asyncio
     async def test_invalid_base64_returns_400(self, client, auth_headers):
         resp = await client.post("/api/v0/keys/init", json={
             "sign_public_key": "!!!not_base64!!!",
@@ -59,6 +62,7 @@ class TestKeysInit:
         }, headers=auth_headers)
         assert resp.status_code == 400
 
+    @pytest.mark.asyncio
     async def test_wrong_key_length_returns_400(self, client, auth_headers):
         """Ключ правильный base64, но не 32 байта."""
         short_key = base64.b64encode(b"\x01" * 16).decode()  # 16 байт
@@ -68,6 +72,7 @@ class TestKeysInit:
         }, headers=auth_headers)
         assert resp.status_code == 400
 
+    @pytest.mark.asyncio
     async def test_requires_auth(self, client):
         resp = await client.post("/api/v0/keys/init", json={
             "sign_public_key": VALID_SIGN_KEY,
@@ -75,6 +80,7 @@ class TestKeysInit:
         })
         assert resp.status_code in (401, 422)
 
+    @pytest.mark.asyncio
     async def test_missing_field_returns_422(self, client, auth_headers):
         resp = await client.post("/api/v0/keys/init", json={
             "sign_public_key": VALID_SIGN_KEY,
@@ -89,6 +95,7 @@ class TestKeysInit:
 
 class TestGetKeys:
 
+    @pytest.mark.asyncio
     async def test_returns_list_of_users_with_keys(self, client, auth_headers, db_session):
         """После загрузки ключей пользователь должен появиться в списке."""
         await client.post("/api/v0/keys/init", json={
@@ -109,10 +116,12 @@ class TestGetKeys:
         ]
         assert len(users_with_keys) >= 1
 
+    @pytest.mark.asyncio
     async def test_requires_auth(self, client):
         resp = await client.get("/api/v0/keys")
         assert resp.status_code in (401, 422)
 
+    @pytest.mark.asyncio
     async def test_response_schema(self, client, auth_headers):
         """Каждый элемент списка содержит ожидаемые поля."""
         resp = await client.get("/api/v0/keys", headers=auth_headers)

@@ -17,6 +17,7 @@ from app.db.crud import create_user
  
 class TestGetUsers:
  
+    @pytest.mark.asyncio
     async def test_returns_list(self, client, auth_headers):
         resp = await client.get("/api/v0/users", headers=auth_headers)
         assert resp.status_code == 200
@@ -24,12 +25,14 @@ class TestGetUsers:
         assert body["success"] is True
         assert isinstance(body["data"], list)
  
+    @pytest.mark.asyncio
     async def test_includes_registered_user(self, client, auth_headers, registered_user):
         resp = await client.get("/api/v0/users", headers=auth_headers)
         assert resp.status_code == 200
         usernames = [u["username"] for u in resp.json()["data"]]
         assert registered_user.username in usernames
  
+    @pytest.mark.asyncio
     async def test_multiple_users_returned(self, client, auth_headers, db_session):
         """При наличии нескольких пользователей все возвращаются."""
         for i, name in enumerate(("bob", "carol"), start=3):
@@ -46,10 +49,12 @@ class TestGetUsers:
         assert "bob" in usernames
         assert "carol" in usernames
  
+    @pytest.mark.asyncio
     async def test_requires_auth(self, client):
         resp = await client.get("/api/v0/users")
         assert resp.status_code in (401, 422)
  
+    @pytest.mark.asyncio
     async def test_response_schema(self, client, auth_headers, registered_user):
         """Каждый элемент содержит обязательные поля."""
         resp = await client.get("/api/v0/users", headers=auth_headers)

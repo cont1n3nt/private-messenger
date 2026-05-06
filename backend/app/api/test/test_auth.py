@@ -62,7 +62,7 @@ async def challenge_for_ed_user(db_session, ed_user):
 # ---------------------------------------------------------------------------
 
 class TestRequestChallenge:
-
+    @pytest.mark.asyncio
     async def test_returns_challenge_for_existing_user(self, client, registered_user):
         resp = await client.post("/api/v0/auth/challenge", json={"username": "alice"})
         assert resp.status_code == 200
@@ -72,10 +72,12 @@ class TestRequestChallenge:
         # challenge должен быть hex-строкой длиной 64 символа (32 байта)
         assert len(body["data"]["challenge"]) == 64
 
+    @pytest.mark.asyncio
     async def test_returns_404_for_unknown_user(self, client):
         resp = await client.post("/api/v0/auth/challenge", json={"username": "ghost"})
         assert resp.status_code == 404
 
+    @pytest.mark.asyncio
     async def test_missing_username_field(self, client):
         resp = await client.post("/api/v0/auth/challenge", json={})
         assert resp.status_code == 422
@@ -87,6 +89,7 @@ class TestRequestChallenge:
 
 class TestVerifySignature:
 
+    @pytest.mark.asyncio
     async def test_valid_signature_returns_token(
         self, client, db_session, ed_user, challenge_for_ed_user
     ):
@@ -107,6 +110,7 @@ class TestVerifySignature:
         assert "token" in body["data"]
         assert "expires_at" in body["data"]
 
+    @pytest.mark.asyncio
     async def test_wrong_signature_returns_401(
         self, client, db_session, ed_user, challenge_for_ed_user
     ):
@@ -121,6 +125,7 @@ class TestVerifySignature:
         })
         assert resp.status_code == 401
 
+    @pytest.mark.asyncio
     async def test_wrong_challenge_returns_400(self, client, ed_user, challenge_for_ed_user):
         user, private_key = ed_user
         wrong_challenge = secrets.token_hex(32)
@@ -133,6 +138,7 @@ class TestVerifySignature:
         })
         assert resp.status_code == 400
 
+    @pytest.mark.asyncio
     async def test_unknown_user_returns_404(self, client):
         resp = await client.post("/api/v0/auth/verify", json={
             "username": "nobody",
@@ -141,6 +147,7 @@ class TestVerifySignature:
         })
         assert resp.status_code == 404
 
+    @pytest.mark.asyncio
     async def test_challenge_field_must_be_hex64(self, client, ed_user):
         resp = await client.post("/api/v0/auth/verify", json={
             "username": "ed_alice",
@@ -149,6 +156,7 @@ class TestVerifySignature:
         })
         assert resp.status_code == 422
 
+    @pytest.mark.asyncio
     async def test_signature_field_must_be_hex128(self, client, ed_user, challenge_for_ed_user):
         resp = await client.post("/api/v0/auth/verify", json={
             "username": "ed_alice",
@@ -164,6 +172,7 @@ class TestVerifySignature:
 
 class TestLogout:
 
+    @pytest.mark.asyncio
     async def test_logout_invalidates_token(self, client, auth_headers, db_session, auth_token):
         # Сначала /me работает
         me = await client.get("/api/v0/auth/me", headers=auth_headers)
@@ -177,7 +186,8 @@ class TestLogout:
         # После логаута тот же токен не работает
         me_after = await client.get("/api/v0/auth/me", headers=auth_headers)
         assert me_after.status_code == 401
-
+    
+    @pytest.mark.asyncio
     async def test_logout_without_token_returns_422_or_401(self, client):
         resp = await client.post("/api/v0/auth/logout")
         assert resp.status_code in (401, 422)
@@ -189,6 +199,7 @@ class TestLogout:
 
 class TestGetMe:
 
+    @pytest.mark.asyncio
     async def test_returns_current_user_info(self, client, auth_headers, registered_user):
         resp = await client.get("/api/v0/auth/me", headers=auth_headers)
         assert resp.status_code == 200
@@ -196,7 +207,8 @@ class TestGetMe:
         assert body["success"] is True
         assert body["data"]["username"] == registered_user.username
         assert body["data"]["id"] == registered_user.id
-
+    
+    @pytest.mark.asyncio
     async def test_expired_token_returns_401(self, client, db_session, registered_user):
         token = secrets.token_hex(32)
         await create_session(db_session, {
@@ -211,14 +223,16 @@ class TestGetMe:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 401
-
+    
+    @pytest.mark.asyncio
     async def test_invalid_token_returns_401(self, client):
         resp = await client.get(
             "/api/v0/auth/me",
             headers={"Authorization": "Bearer totally_fake_token"},
         )
         assert resp.status_code == 401
-
+    
+    @pytest.mark.asyncio
     async def test_missing_authorization_header_returns_422(self, client):
         resp = await client.get("/api/v0/auth/me")
         assert resp.status_code == 422
