@@ -83,7 +83,7 @@ async def create_message(
     
     message_dict = {
         "sender_id": current_user.id,
-        "ciphertext": message_data.ciphertext,
+        "ciphertext": base64.b64decode(message_data.ciphertext),
         "nonce": nonce_bytes,
         "created_at": datetime.now(timezone.utc),
         "delete_at": datetime.now(timezone.utc) + _MESSAGE_TTL
