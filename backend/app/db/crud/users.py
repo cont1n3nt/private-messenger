@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models import User
-from typing import List, Union
 
 # NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
 
@@ -25,7 +24,7 @@ async def create_user(session: AsyncSession, user_data: dict) -> User:
     session.add(user)
     return user # объект имеет статус 'pending'
 
-async def create_multiple_users(session: AsyncSession, users_data: list[dict]) -> User:
+async def create_multiple_users(session: AsyncSession, users_data: list[dict]) -> list[User]:
     """
     Создает нескольких пользователей в базе данных
 
@@ -45,7 +44,7 @@ async def create_multiple_users(session: AsyncSession, users_data: list[dict]) -
     session.add_all(users)
     return users
 
-async def get_user_by_id(session: AsyncSession, user_id: int) -> User:
+async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
     """
     Получает пользователя по его уникальному идентификатору
 
@@ -62,7 +61,7 @@ async def get_user_by_id(session: AsyncSession, user_id: int) -> User:
 
     return await session.get(User, user_id)
 
-async def get_user_by_username(session: AsyncSession, username: str) -> Union[User, None]:
+async def get_user_by_username(session: AsyncSession, username: str) -> User | None:
     """
     Получает пользователя по его имени пользователя (username)
 
@@ -81,7 +80,7 @@ async def get_user_by_username(session: AsyncSession, username: str) -> Union[Us
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
-async def get_all_users(session: AsyncSession) -> List[User]:
+async def get_all_users(session: AsyncSession) -> list[User]:
     """
     Получает список всех пользователей из базы данных
 
@@ -118,9 +117,8 @@ async def delete_user(session: AsyncSession, user_id: int) -> None: # Каска
     user = await session.get(User, user_id)
     if user:
         await session.delete(user)
-        await session.commit()
 
-async def update_user_keys(session: AsyncSession, user_id: int, **kwargs) -> User:
+async def update_user_keys(session: AsyncSession, user_id: int, **kwargs) -> User | None:
     """
     Обновляет криптографические ключи пользователя (или другие поля)
 

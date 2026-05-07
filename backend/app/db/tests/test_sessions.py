@@ -52,6 +52,7 @@ class TestDeleteSession:
         await session.commit()
 
         await crud.delete_session(session, data["token"])
+        await session.commit()
 
         found = await crud.get_session_by_token(session, data["token"])
         assert found is None

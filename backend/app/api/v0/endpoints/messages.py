@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import Optional
 import base64
 from datetime import datetime, timezone, timedelta
 
@@ -10,6 +10,7 @@ from app.db.models import User
 from app.db import crud
 from app.schemas import APIResponse
 from app.schemas.messages import SendMessageRequest, MessageOut
+from app.api.rate_limit import limiter
 
 
 
@@ -19,15 +20,16 @@ _MESSAGE_TTL = timedelta(hours=48)
 
 @router.get(
     "",
-    response_model=APIResponse[List[MessageOut]],
+    response_model=APIResponse[list[MessageOut]],
     summary="Get all messages",
 )
 async def get_messages(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
-    limit: Optional[int] = Query(None, description="Maximum number of messages to return", ge=1),
+    limit: Optional[int] = Query(None, description="Maximum number of messages to return", ge=1, le=1000),
     after_id: Optional[int] = Query(None, description="Get messages after this message ID", ge=1),
-) -> APIResponse[List[MessageOut]]:
+) -> APIResponse[list[MessageOut]]:
     """
     возвращает список всех сообщений
     требует авторизации (токен)
@@ -44,7 +46,8 @@ async def get_messages(
     if after_id is not None:
         messages = await crud.get_messages_after(
             db,
-            after_id=after_id
+            after_id=after_id,
+            limit=limit if limit is not None else 1000
         )
     elif limit is not None:
         messages = await crud.get_latest_messages(
@@ -52,7 +55,7 @@ async def get_messages(
             limit=limit
         )
     else:
-        messages = await crud.get_messages(db)
+        messages = await crud.get_latest_messages(db, limit=100)
     
     return APIResponse.ok([MessageOut.model_validate(m) for m in messages])
 
@@ -62,7 +65,9 @@ async def get_messages(
     response_model=APIResponse[MessageOut],
     summary="Create a new message"
 )
+@limiter.limit("30/minute")
 async def create_message(
+    request: Request,
     message_data: SendMessageRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -107,39 +112,15 @@ async def create_message(
     return APIResponse.ok(msg_out)
 
 
-@router.delete(
-    "/old",
-    response_model=APIResponse[dict],
-    summary="Delete expired messages",
-)
-async def delete_old_messages(
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-) -> APIResponse[dict]:
-    """
-    удаляет все сообщения с истекшим сроком удаления
-    требует авторизации (токен)
-
-    Args:
-        db: Сессия БД.
-        _: Проверка авторизации (сам объект не используется).
-
-    Returns:
-        APIResponse с количеством удаленных сообщений (deleted_count).
-    """
-    deleted_count = await crud.delete_old_messages(db)
-    return APIResponse.ok({"deleted_count": deleted_count})
-
-
 @router.get(
     "/me",
-    response_model=APIResponse[List[MessageOut]],
+    response_model=APIResponse[list[MessageOut]],
     summary="Get all messages written by user",
 )
 async def get_user_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> APIResponse[List[MessageOut]]:
+) -> APIResponse[list[MessageOut]]:
     """
     возвращает все сообщения текущего пользователя
     требует авторизации (токен)

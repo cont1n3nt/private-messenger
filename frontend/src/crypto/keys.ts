@@ -1,5 +1,4 @@
 import { ed25519, x25519 } from '@noble/curves/ed25519.js'
-import { bytesToHex, hexToBytes } from '@noble/ciphers/utils.js'
 import type { KeyPair, ImportedKeys } from '../types'
 
 const DB_NAME = 'private-messenger'
@@ -37,19 +36,6 @@ function b64Decode(b64: string): Uint8Array {
   return bytes
 }
 
-export function generateKeyPair(): KeyPair {
-  const sign = ed25519.keygen()
-  const dhSecretKey = ed25519.utils.toMontgomerySecret(sign.secretKey)
-  const dhPublicKey = x25519.getPublicKey(dhSecretKey)
-
-  return {
-    signSecretKey: sign.secretKey,
-    signPublicKey: sign.publicKey,
-    dhSecretKey,
-    dhPublicKey,
-  }
-}
-
 export async function saveKeyPair(
   username: string,
   keys: KeyPair,
@@ -67,8 +53,8 @@ export async function saveKeyPair(
     username,
   )
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
+    tx.oncomplete = () => { db.close(); resolve() }
+    tx.onerror = () => { db.close(); reject(tx.error) }
   })
 }
 
@@ -80,9 +66,12 @@ export async function loadKeyPair(
   const store = tx.objectStore(STORE)
   const req = store.get(username)
   return new Promise((resolve, reject) => {
+    let resolved = false
     req.onsuccess = () => {
       const row = req.result
       if (!row) {
+        resolved = true
+        db.close()
         resolve(null)
         return
       }
@@ -93,18 +82,45 @@ export async function loadKeyPair(
         dhPublicKey: b64Decode(row.dhPublicKey),
       })
     }
-    req.onerror = () => reject(req.error)
+    tx.oncomplete = () => { if (!resolved) db.close() }
+    req.onerror = () => { db.close(); reject(req.error) }
   })
 }
 
 export function importKeysFromJson(json: ImportedKeys): KeyPair {
-  const seed32 = b64Decode(json.sign_private_key)
-  const expanded = ed25519.keygen(seed32)
+  const rawKey = b64Decode(json.sign_private_key)
+  let signSecretKey: Uint8Array
+  let signPublicKey: Uint8Array
+
+  if (rawKey.length === 32) {
+    const expanded = ed25519.keygen(rawKey)
+    signSecretKey = expanded.secretKey
+    signPublicKey = expanded.publicKey
+  } else if (rawKey.length === 64) {
+    signSecretKey = rawKey
+    signPublicKey = b64Decode(json.sign_public_key)
+    const expectedPub = rawKey.subarray(32)
+    if (!signPublicKey.every((b, i) => b === expectedPub[i])) {
+      throw new Error('Sign secret key does not match sign public key')
+    }
+  } else {
+    throw new Error(`Invalid sign key length: ${rawKey.length}`)
+  }
+
+  const dhSecretKey = b64Decode(json.dh_private_key)
+  const dhPublicKey = b64Decode(json.dh_public_key)
+  if (dhSecretKey.length !== 32) throw new Error(`Invalid DH private key length: ${dhSecretKey.length}, expected 32`)
+  if (dhPublicKey.length !== 32) throw new Error(`Invalid DH public key length: ${dhPublicKey.length}, expected 32`)
+  const expectedDhPub = x25519.getPublicKey(dhSecretKey)
+  if (!dhPublicKey.every((b, i) => b === expectedDhPub[i])) {
+    throw new Error('DH public key does not match DH private key')
+  }
+
   return {
-    signSecretKey: expanded.secretKey,
-    signPublicKey: expanded.publicKey,
-    dhSecretKey: b64Decode(json.dh_private_key),
-    dhPublicKey: b64Decode(json.dh_public_key),
+    signSecretKey,
+    signPublicKey,
+    dhSecretKey,
+    dhPublicKey,
   }
 }
 
@@ -114,9 +130,9 @@ export async function deleteKeyPair(username: string): Promise<void> {
   const store = tx.objectStore(STORE)
   store.delete(username)
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
+    tx.oncomplete = () => { db.close(); resolve() }
+    tx.onerror = () => { db.close(); reject(tx.error) }
   })
 }
 
-export { b64Encode, b64Decode, bytesToHex, hexToBytes }
+export { b64Encode, b64Decode }

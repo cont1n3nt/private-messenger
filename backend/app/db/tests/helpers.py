@@ -16,7 +16,7 @@ def make_message_data(sender_id, days=1):
         "delete_at": datetime.now(timezone.utc) + timedelta(days=days),
     }
 
-def make_challenge_data(user_id, hours=1, used=0):
+def make_challenge_data(user_id, hours=1, used=False):
     return {
         "user_id": user_id,
         "challenge": f"challenge_{user_id}_{hours}",

@@ -81,15 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('token', token)
 
-      await keysApi.initKeys(
-        b64Encode(keys.signPublicKey),
-        b64Encode(keys.dhPublicKey),
-      )
+      try {
+        await keysApi.initKeys(
+          b64Encode(keys.signPublicKey),
+          b64Encode(keys.dhPublicKey),
+        )
 
-      const users = await keysApi.getKeys()
-      const found = users.find((u) => u.username === username) ?? null
-      setUser(found)
-      setKeyPair(keys)
+        const users = await keysApi.getKeys()
+        const found = users.find((u) => u.username === username) ?? null
+        setUser(found)
+        setKeyPair(keys)
+      } catch (err) {
+        localStorage.removeItem('token')
+        throw err
+      }
     },
     [],
   )
@@ -101,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     localStorage.removeItem('token')
-    localStorage.removeItem('groupKey')
+    if (user) localStorage.removeItem(`groupKey_${user.id}`)
     setUser(null)
     setKeyPair(null)
   }, [])

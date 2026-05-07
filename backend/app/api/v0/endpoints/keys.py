@@ -36,31 +36,26 @@ async def keys_init(
             detail="Invalid key length, expected 32 bytes for both keys",
         )
 
+    if (current_user.sign_public_key is not None and current_user.sign_public_key != sign_bytes) or \
+       (current_user.dh_public_key is not None and current_user.dh_public_key != dh_bytes):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Key operation not allowed",
+        )
+
     if current_user.sign_public_key == sign_bytes and current_user.dh_public_key == dh_bytes:
         return APIResponse.ok(KeysData(
             sign_public_key=body.sign_public_key,
             dh_public_key=body.dh_public_key,
         ))
 
-    if current_user.sign_public_key or current_user.dh_public_key:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Public keys already set and do not match. Key replacement is not allowed.",
-        )
-
-    user = await crud.update_user_keys(
+    await crud.update_user_keys(
         db,
         user_id=current_user.id,
         sign_public_key=sign_bytes,
         dh_public_key=dh_bytes,
     )
-    
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-        
+
     return APIResponse.ok(KeysData(
         sign_public_key=body.sign_public_key,
         dh_public_key=body.dh_public_key,

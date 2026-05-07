@@ -14,24 +14,12 @@ class ConnectionManager:
         self._connections: dict[int, WebSocket] = {}
         
     async def connect(self, user_id: int, websocket: WebSocket) -> None:
-        """
-        Принимает новое соединение.
-
-        Если у пользователя уже есть активное соединение — закрывает старое
-        перед добавлением нового (один юзер = одно соединение).
-
-        Args:
-            user_id: ID пользователя.
-            websocket: Новый WebSocket объект.
-        """
-        await websocket.accept()
-
         if user_id in self._connections:
             old = self._connections[user_id]
             try:
                 await old.close(code=4001)
             except Exception:
-                pass  # старое соединение могло уже упасть
+                pass
 
         self._connections[user_id] = websocket
         
@@ -57,7 +45,7 @@ class ConnectionManager:
         
         dead: list[int] = []
         
-        for user_id, ws in self._connections.items():
+        for user_id, ws in list(self._connections.items()):
             try:
                 await ws.send_json(payload)
             except Exception:

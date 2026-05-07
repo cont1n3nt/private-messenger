@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Private Messenger"
     PROJECT_VERSION: str = "0.0.0"
     PROJECT_DESCRIPTION: str = "A messenger with powerful encryption."
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),

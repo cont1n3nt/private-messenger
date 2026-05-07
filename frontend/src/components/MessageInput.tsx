@@ -1,19 +1,27 @@
 import { useState } from 'react'
 
 interface Props {
-  onSend: (text: string) => void
+  onSend: (text: string) => Promise<void>
   disabled: boolean
 }
 
 export default function MessageInput({ onSend, disabled }: Props) {
   const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed) return
-    onSend(trimmed)
-    setText('')
+    if (!trimmed || sending) return
+    try {
+      setSending(true)
+      await onSend(trimmed)
+      setText('')
+    } catch {
+      // message text preserved for retry
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -24,10 +32,10 @@ export default function MessageInput({ onSend, disabled }: Props) {
         placeholder="Type a message..."
         value={text}
         onChange={(e) => setText(e.target.value)}
-        disabled={disabled}
+        disabled={disabled || sending}
         autoFocus
       />
-      <button className="msg-send-btn" type="submit" disabled={disabled || !text.trim()}>
+      <button className="msg-send-btn" type="submit" disabled={disabled || sending || !text.trim()}>
         Send
       </button>
     </form>

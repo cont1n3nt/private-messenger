@@ -1,8 +1,8 @@
 export interface User {
   id: number
   username: string
-  sign_public_key: string
-  dh_public_key: string
+  sign_public_key: string | null
+  dh_public_key: string | null
 }
 
 export interface Message {

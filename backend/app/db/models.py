@@ -1,7 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import String, LargeBinary, DateTime, ForeignKey, Integer
+from sqlalchemy import String, LargeBinary, DateTime, ForeignKey, Integer, Boolean
 from datetime import datetime, timezone
-from typing import List
 
 # ORM-модель:
 # Атрибуты класса - столбцы таблицы
@@ -28,12 +27,11 @@ class User(Base):
     # Mapped - это контейнер для типа
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True) # Автозаполнение, первичный ключ
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False) # Строка длиной не более 64 символов, является уникальной, не может быть пустой (NULL)
-    sign_public_key: Mapped[bytes] = mapped_column(LargeBinary, unique=True, nullable=False)
-    dh_public_key: Mapped[bytes] = mapped_column(LargeBinary, unique=True, nullable=False)
-
-    sessions: Mapped[List["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select") # При удалении пользователя удаляется закрепленная за ним сессия
-    sent_messages: Mapped[List["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", lazy="select")
-    challenges: Mapped[List["Challenge"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select") # При удалении пользователя удаляются закрепленные за ним челленджи
+    sign_public_key: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    dh_public_key: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select")
+    sent_messages: Mapped[list["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", lazy="select")
+    challenges: Mapped[list["Challenge"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select")
 
 class Session(Base):
     """
@@ -48,7 +46,7 @@ class Session(Base):
     __tablename__ = "sessions"
 
     token: Mapped[str] = mapped_column(String(255), primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id")) # внешний ключ, связь с конкретным пользователем
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True) # внешний ключ, связь с конкретным пользователем
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="sessions", lazy="joined")
@@ -70,13 +68,13 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     delete_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    sender: Mapped["User"] = relationship(back_populates="sent_messages", foreign_keys=[sender_id], lazy="selectin")
+    sender: Mapped["User"] = relationship(back_populates="sent_messages", foreign_keys=[sender_id], lazy="noload")
 
 class Challenge(Base):
     """
@@ -91,9 +89,9 @@ class Challenge(Base):
 
     __tablename__ = "challenges"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     challenge: Mapped[str] = mapped_column(String, primary_key=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    used: Mapped[int] = mapped_column(Integer, default=0)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped["User"] = relationship(back_populates="challenges", lazy="joined")

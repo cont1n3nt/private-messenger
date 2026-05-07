@@ -64,14 +64,14 @@ async def seed_user(username: str) -> None:
 
         keys = generate_keypairs()
 
+        key_path = save_private_keys(username, keys)
+
         await crud.create_user(session, {
             "username": username,
             "sign_public_key": keys["sign_public_key"],
             "dh_public_key":   keys["dh_public_key"],
         })
         await session.commit()
-
-        key_path = save_private_keys(username, keys)
 
 
 async def main() -> None:

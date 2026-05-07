@@ -4,8 +4,10 @@ import base64
 
 _HEX48 = Field(pattern=r"^[0-9a-f]{48}$")
 
+_B64_PATTERN = r"^[A-Za-z0-9+/]+={0,2}$"
+
 class SendMessageRequest(BaseModel):
-    ciphertext: str
+    ciphertext: str = Field(..., max_length=65536, pattern=_B64_PATTERN)
     nonce: str = _HEX48
 
 

@@ -79,6 +79,7 @@ class TestDeleteUser:
     @pytest.mark.asyncio
     async def test_delete_user_removes(self, session, user):
         await crud.delete_user(session, user.id)
+        await session.commit()
         found = await crud.get_user_by_id(session, user.id)
         assert found is None
 

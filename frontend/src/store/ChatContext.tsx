@@ -29,39 +29,71 @@ interface ChatContextValue {
   founderUsername: string | null
   users: User[]
   sendMessage: (text: string) => Promise<void>
+  initError: string | null
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
 
-const GROUP_KEY_STORAGE = 'groupKey'
+const GROUP_KEY_STORAGE_PREFIX = 'groupKey_'
 
-function storeGroupKey(key: Uint8Array): void {
-  localStorage.setItem(GROUP_KEY_STORAGE, b64Encode(key))
+function groupKeyStorageKey(userId: number): string {
+  return `${GROUP_KEY_STORAGE_PREFIX}${userId}`
 }
 
-function loadGroupKey(): Uint8Array | null {
-  const b64 = localStorage.getItem(GROUP_KEY_STORAGE)
+function storeGroupKey(userId: number, key: Uint8Array): void {
+  localStorage.setItem(groupKeyStorageKey(userId), b64Encode(key))
+}
+
+function loadGroupKey(userId: number): Uint8Array | null {
+  const b64 = localStorage.getItem(groupKeyStorageKey(userId))
   if (!b64) return null
-  return b64Decode(b64)
+  try {
+    const key = b64Decode(b64)
+    if (key.length !== 32) {
+      localStorage.removeItem(groupKeyStorageKey(userId))
+      return null
+    }
+    return key
+  } catch {
+    localStorage.removeItem(groupKeyStorageKey(userId))
+    return null
+  }
 }
 
-function findFounder(users: User[]): User {
+function findFounder(users: User[]): User | null {
+  if (users.length === 0) return null
   return users.reduce((min, u) => (u.id < min.id ? u : min), users[0])
+}
+
+function isUserFounder(myUserId: number, users: User[]): boolean {
+  return users.length > 0 && users.every((u) => myUserId <= u.id)
 }
 
 async function establishGroupKey(
   myUserId: number,
   keyPair: KeyPair,
 ): Promise<Uint8Array | null> {
-  let groupKey = loadGroupKey()
-  if (groupKey) return groupKey
+  let groupKey = loadGroupKey(myUserId)
 
   const users = await keysApi.getKeys()
-  const secrets = computePairwiseSecrets(myUserId, keyPair.dhSecretKey, users)
+  const founder = findFounder(users)
+  const founderId = founder ? founder.id : -1
+  const secrets = await computePairwiseSecrets(myUserId, keyPair.dhSecretKey, users)
+
+  if (isUserFounder(myUserId, users)) {
+    if (!groupKey) {
+      groupKey = crypto.getRandomValues(new Uint8Array(32))
+      storeGroupKey(myUserId, groupKey)
+    }
+    return groupKey
+  }
+
+  if (groupKey) return groupKey
 
   const messages = await msgApi.getMessages()
 
   for (const msg of messages) {
+    if (msg.sender_id !== founderId) continue
     const secret = secrets.get(msg.sender_id)
     if (!secret) continue
     const plaintext = decrypt(msg.ciphertext, msg.nonce, secret)
@@ -69,29 +101,15 @@ async function establishGroupKey(
     try {
       const payload: MessagePayload = JSON.parse(plaintext)
       if (payload.type === 'key_setup') {
-        groupKey = b64Decode(payload.key)
-        storeGroupKey(groupKey)
+        const decoded = b64Decode(payload.key)
+        if (decoded.length !== 32) continue
+        groupKey = decoded
+        storeGroupKey(myUserId, groupKey)
         return groupKey
       }
     } catch {
       continue
     }
-  }
-
-  const isFounder = users.every((u) => myUserId <= u.id)
-  if (isFounder) {
-    groupKey = crypto.getRandomValues(new Uint8Array(32))
-    storeGroupKey(groupKey)
-
-    for (const [, secret] of secrets) {
-      const payload: MessagePayload = {
-        type: 'key_setup',
-        key: b64Encode(groupKey),
-      }
-      const { ciphertext, nonce } = encrypt(JSON.stringify(payload), secret)
-      await msgApi.sendMessage(ciphertext, nonce)
-    }
-    return groupKey
   }
 
   return null
@@ -116,7 +134,6 @@ function tryDecryptMessage(
           }
         }
       } catch {
-        // not JSON, ignore
       }
     }
   }
@@ -131,10 +148,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [groupKey, setGroupKey] = useState<Uint8Array | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [founderUsername, setFounderUsername] = useState<string | null>(null)
+  const [initError, setInitError] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const groupKeyRef = useRef<Uint8Array | null>(null)
   const lastMsgIdRef = useRef<number>(0)
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wsReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectDelayRef = useRef(3000)
+  const distributedToRef = useRef<Set<number>>(new Set())
+  const founderDistributeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     groupKeyRef.current = groupKey
@@ -148,20 +170,100 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     let cancelled = false
 
     async function init() {
+      try {
+        const allUsers = await keysApi.getKeys()
+        if (cancelled) return
+        setUsers(allUsers)
+
+        const founder = findFounder(allUsers)
+        setFounderUsername(founder?.username ?? null)
+
+        const gk = await establishGroupKey(myUser.id, myKeyPair)
+        if (cancelled) return
+
+        if (gk) {
+          setGroupKey(gk)
+
+          if (isUserFounder(myUser.id, allUsers)) {
+            await distributeKeyToNewUsers(gk)
+            startFounderDistribute()
+          }
+
+          const rawMsgs = await msgApi.getMessages()
+          if (cancelled) return
+          const decrypted: DecryptedMessage[] = []
+          for (const msg of rawMsgs) {
+            const d = tryDecryptMessage(msg, gk)
+            if (d) decrypted.push(d)
+          }
+          if (decrypted.length > 0) {
+            lastMsgIdRef.current = decrypted[decrypted.length - 1].id
+          }
+          setMessages(decrypted)
+          connectWs()
+        } else {
+          startGroupKeyPoll()
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Chat init failed:', err)
+          setInitError('Failed to initialize chat. Please try reloading.')
+        }
+      }
+    }
+
+    init()
+    return () => {
+      cancelled = true
+      if (wsRef.current) {
+        wsRef.current.onclose = null
+        wsRef.current.close()
+      }
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
+      if (wsReconnectTimerRef.current) clearTimeout(wsReconnectTimerRef.current)
+      if (founderDistributeTimerRef.current) clearTimeout(founderDistributeTimerRef.current)
+    }
+  }, [isAuthenticated, user?.id, keyPair])
+
+  async function distributeKeyToNewUsers(gk: Uint8Array) {
+    if (!user || !keyPair) return
+    try {
       const allUsers = await keysApi.getKeys()
-      if (cancelled) return
+      const secrets = await computePairwiseSecrets(user.id, keyPair.dhSecretKey, allUsers)
+      const distributed = distributedToRef.current
+
+      for (const [userId, secret] of secrets) {
+        if (distributed.has(userId)) continue
+        const payload: MessagePayload = {
+          type: 'key_setup',
+          key: b64Encode(gk),
+        }
+        const { ciphertext, nonce } = encrypt(JSON.stringify(payload), secret)
+        await msgApi.sendMessage(ciphertext, nonce)
+        distributed.add(userId)
+      }
       setUsers(allUsers)
+    } catch (err) {
+      console.error('Distribute key failed:', err)
+    }
+  }
 
-      const founder = findFounder(allUsers)
-      setFounderUsername(founder.username)
+  function startFounderDistribute() {
+    founderDistributeTimerRef.current = setTimeout(async () => {
+      if (!groupKeyRef.current) return
+      await distributeKeyToNewUsers(groupKeyRef.current)
+      startFounderDistribute()
+    }, GROUP_KEY_POLL_MS)
+  }
 
-      const gk = await establishGroupKey(myUser.id, myKeyPair)
-      if (cancelled) return
+  async function startGroupKeyPoll() {
+    if (!user || !keyPair) return
 
+    try {
+      const gk = await establishGroupKey(user.id, keyPair)
       if (gk) {
         setGroupKey(gk)
         const rawMsgs = await msgApi.getMessages()
-        if (cancelled) return
         const decrypted: DecryptedMessage[] = []
         for (const msg of rawMsgs) {
           const d = tryDecryptMessage(msg, gk)
@@ -172,37 +274,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
         setMessages(decrypted)
         connectWs()
-      } else {
-        startGroupKeyPoll()
+        return
       }
-    }
-
-    init()
-    return () => {
-      cancelled = true
-      wsRef.current?.close()
-      if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
-    }
-  }, [isAuthenticated, user?.id, keyPair])
-
-  async function startGroupKeyPoll() {
-    if (!user || !keyPair) return
-
-    const gk = await establishGroupKey(user.id, keyPair)
-    if (gk) {
-      setGroupKey(gk)
-      const rawMsgs = await msgApi.getMessages()
-      const decrypted: DecryptedMessage[] = []
-      for (const msg of rawMsgs) {
-        const d = tryDecryptMessage(msg, gk)
-        if (d) decrypted.push(d)
-      }
-      if (decrypted.length > 0) {
-        lastMsgIdRef.current = decrypted[decrypted.length - 1].id
-      }
-      setMessages(decrypted)
-      connectWs()
-      return
+    } catch (err) {
+      console.error('Group key poll failed:', err)
     }
 
     pollTimerRef.current = setTimeout(startGroupKeyPoll, GROUP_KEY_POLL_MS)
@@ -210,16 +285,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   async function fetchMissedMessages() {
     if (!groupKeyRef.current) return
-    const afterId = lastMsgIdRef.current
-    if (afterId === 0) return
-    const rawMsgs = await msgApi.getMessages(undefined, afterId)
-    const gk = groupKeyRef.current
-    for (const msg of rawMsgs) {
-      const d = tryDecryptMessage(msg, gk)
-      if (d) {
-        lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
-        setMessages((prev) => [...prev, d])
+    try {
+      const afterId = lastMsgIdRef.current
+      const rawMsgs = afterId === 0
+        ? await msgApi.getMessages()
+        : await msgApi.getMessages(undefined, afterId)
+      const gk = groupKeyRef.current
+      for (const msg of rawMsgs) {
+        const d = tryDecryptMessage(msg, gk)
+        if (d) {
+          lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
+          setMessages((prev) => [...prev, d])
+        }
       }
+    } catch (err) {
+      console.error('Fetch missed messages failed:', err)
     }
   }
 
@@ -227,10 +307,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('token')
     if (!token) return
 
+    if (wsRef.current) {
+      wsRef.current.onclose = null
+      wsRef.current.close()
+    }
+
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${proto}//${window.location.host}/api/v0/ws?token=${token}`
+    const url = `${proto}//${window.location.host}/api/v0/ws`
     const ws = new WebSocket(url)
     wsRef.current = ws
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'auth', token }))
+      reconnectDelayRef.current = 3000
+    }
 
     ws.onmessage = (ev) => {
       try {
@@ -244,16 +334,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setMessages((prev) => [...prev, d])
         }
       } catch {
-        // ignore malformed
       }
     }
 
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       wsRef.current = null
+      if (ev.code === 4003) return
       if (localStorage.getItem('token')) {
-        setTimeout(() => {
-          fetchMissedMessages().then(() => connectWs())
-        }, 3000)
+        const delay = reconnectDelayRef.current
+        reconnectDelayRef.current = Math.min(delay * 2, 30000)
+        wsReconnectTimerRef.current = setTimeout(() => {
+          fetchMissedMessages().then(() => connectWs()).catch(() => {})
+        }, delay)
       }
     }
   }
@@ -279,6 +371,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         founderUsername,
         users,
         sendMessage,
+        initError,
       }}
     >
       {children}

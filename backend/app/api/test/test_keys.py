@@ -35,32 +35,33 @@ class TestKeysInit:
 
     @pytest.mark.asyncio
     async def test_update_keys_twice(self, client, auth_headers):
-        """Повторный вызов должен обновить ключи без ошибок."""
-        new_sign = base64.b64encode(b"\xCC" * 32).decode()
-        new_dh   = base64.b64encode(b"\xDD" * 32).decode()
-
+        """Повторная загрузка тех же ключей — OK. Других ключей — 409."""
         await client.post("/api/v0/keys/init", json={
             "sign_public_key": VALID_SIGN_KEY,
             "dh_public_key":   VALID_DH_KEY,
         }, headers=auth_headers)
 
-        resp = await client.post("/api/v0/keys/init", json={
+        resp_same = await client.post("/api/v0/keys/init", json={
+            "sign_public_key": VALID_SIGN_KEY,
+            "dh_public_key":   VALID_DH_KEY,
+        }, headers=auth_headers)
+        assert resp_same.status_code == 200
+
+        new_sign = base64.b64encode(b"\xCC" * 32).decode()
+        new_dh   = base64.b64encode(b"\xDD" * 32).decode()
+        resp_diff = await client.post("/api/v0/keys/init", json={
             "sign_public_key": new_sign,
             "dh_public_key":   new_dh,
         }, headers=auth_headers)
-
-        assert resp.status_code == 200
-        body = resp.json()
-        assert body["data"]["sign_public_key"] == new_sign
-        assert body["data"]["dh_public_key"]   == new_dh
+        assert resp_diff.status_code == 409
 
     @pytest.mark.asyncio
-    async def test_invalid_base64_returns_400(self, client, auth_headers):
+    async def test_invalid_base64_returns_422(self, client, auth_headers):
         resp = await client.post("/api/v0/keys/init", json={
             "sign_public_key": "!!!not_base64!!!",
             "dh_public_key":   VALID_DH_KEY,
         }, headers=auth_headers)
-        assert resp.status_code == 400
+        assert resp.status_code == 422
 
     @pytest.mark.asyncio
     async def test_wrong_key_length_returns_400(self, client, auth_headers):

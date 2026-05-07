@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, Request
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from app.schemas import (
     TokenData,
     MeData,
 )
+from app.api.rate_limit import limiter
 
 router = APIRouter()
 
@@ -36,7 +37,9 @@ _AUTH_FAILED = HTTPException(
     response_model=APIResponse[ChallengeData],
     summary="Request a challenge for authentication",
 )
+@limiter.limit("5/minute")
 async def request_challenge(
+    request: Request,
     body: ChallengeRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[ChallengeData]:
@@ -54,7 +57,7 @@ async def request_challenge(
             "user_id": user.id,
             "challenge": challenge_hex,
             "expires_at": datetime.now(timezone.utc) + _CHALLENGE_TTL,
-            "used": 0,
+            "used": False,
         })
         await db.commit()
 
@@ -66,7 +69,9 @@ async def request_challenge(
     response_model=APIResponse[TokenData],
     summary="Verify a signed challenge and receive an access token",
 )
+@limiter.limit("10/minute")
 async def verify_signature(
+    request: Request,
     body: VerifyRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[TokenData]:
@@ -78,7 +83,7 @@ async def verify_signature(
     что устраняет TOCTOU race condition при параллельных запросах.
     """
     user: User | None = await crud.get_user_by_username(db, body.username)
-    if user is None:
+    if user is None or user.sign_public_key is None:
         raise _AUTH_FAILED
 
     if not _verify_ed25519(
@@ -117,6 +122,7 @@ async def logout(
     
     token: str = authorization.removeprefix("Bearer ").strip()
     await crud.delete_session(db, token)
+    await db.commit()
     
     return APIResponse.ok(None)
 
@@ -132,14 +138,12 @@ async def get_me(
     return APIResponse.ok(MeData(id=current_user.id, username=current_user.username))
 
 def _verify_ed25519(
-    public_key_bytes: bytes,
+    public_key_bytes: bytes | None,
     signature_hex: str,
     message_hex: str,
 ) -> bool:
-    """
-    Проверяет Ed25519 подпись. Возвращает True если подпись валидна, False иначе.
-    Не бросает исключений — вызывающий код решает как обработать ошибку.
-    """
+    if public_key_bytes is None:
+        return False
     try:
         public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
         public_key.verify(

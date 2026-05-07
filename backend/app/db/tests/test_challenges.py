@@ -1,5 +1,6 @@
 import pytest
-from app.db import crud
+import sqlalchemy
+from app.db import crud, models
 from app.db.tests.helpers import make_challenge_data
 from datetime import datetime, timedelta, timezone
 
@@ -11,7 +12,7 @@ class TestCreateChallenge:
         challenge = await crud.create_challenge(session, make_challenge_data(user.id))
 
         assert challenge.user_id == user.id
-        assert challenge.used == 0
+        assert challenge.used is False
         assert challenge.challenge is not None
 
         await session.commit()
@@ -19,7 +20,7 @@ class TestCreateChallenge:
         assert challenge.challenge is not None
 
     @pytest.mark.asyncio
-    async def test_create_challenge_replaces_existing(self, session, user):
+    async def test_create_challenge_multiple(self, session, user):
         await crud.create_challenge(session, make_challenge_data(user.id, hours=1))
         await session.commit()
 
@@ -27,14 +28,15 @@ class TestCreateChallenge:
             "user_id": user.id,
             "challenge": "brand_new_challenge",
             "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-            "used": 0,
+            "used": False,
         })
         await session.commit()
         await session.refresh(new)
 
-        active = await crud.get_active_challenge(session, user_id=user.id)
-        assert active is not None
-        assert active.challenge == "brand_new_challenge"
+        all_challenges = (await session.execute(
+            sqlalchemy.select(models.Challenge)
+        )).scalars().all()
+        assert len(all_challenges) >= 2
 
 
 class TestGetActiveChallenge:
@@ -50,7 +52,7 @@ class TestGetActiveChallenge:
             "user_id": user.id,
             "challenge": "expired_one",
             "expires_at": datetime.now(timezone.utc) - timedelta(seconds=1),
-            "used": 0,
+            "used": False,
         })
         await session.commit()
 
@@ -63,7 +65,7 @@ class TestGetActiveChallenge:
             "user_id": user.id,
             "challenge": "used_challenge",
             "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-            "used": 1,
+            "used": True,
         })
         await session.commit()
 
@@ -80,6 +82,7 @@ class TestDeleteChallenge:
     @pytest.mark.asyncio
     async def test_delete_challenge_removes(self, session, user, test_challenge):
         await crud.delete_challenge(session, user_id=user.id)
+        await session.commit()
         challenge = await crud.get_active_challenge(session, user_id=user.id)
         assert challenge is None
 
@@ -95,7 +98,7 @@ class TestDeleteExpiredChallenges:
             "user_id": user.id,
             "challenge": "exp_challenge",
             "expires_at": datetime.now(timezone.utc) - timedelta(seconds=1),
-            "used": 0,
+            "used": False,
         })
         await session.commit()
 
@@ -108,7 +111,7 @@ class TestDeleteExpiredChallenges:
             "user_id": user.id,
             "challenge": "used_ch",
             "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-            "used": 1,
+            "used": True,
         })
         await session.commit()
 

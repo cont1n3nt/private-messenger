@@ -6,7 +6,7 @@ import MessageInput from '../components/MessageInput'
 
 export default function ChatPage() {
   const { user, logout } = useAuth()
-  const { messages, groupKeyReady, founderUsername, users, sendMessage } = useChat()
+  const { messages, groupKeyReady, founderUsername, users, sendMessage, initError } = useChat()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,7 +30,10 @@ export default function ChatPage() {
       </header>
 
       <div className="chat-messages">
-        {!groupKeyReady && founderUsername && (
+        {initError && (
+          <div className="chat-waiting">{initError}</div>
+        )}
+        {!groupKeyReady && !initError && founderUsername && (
           <div className="chat-waiting">
             Waiting for <strong>@{founderUsername}</strong> to set up the group key...
           </div>

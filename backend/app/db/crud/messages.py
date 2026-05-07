@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from app.db.models import Message
-from typing import List
 import datetime
 
 # NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
@@ -25,7 +24,7 @@ async def create_message(session: AsyncSession, message_data: dict) -> Message:
     session.add(message)
     return message
 
-async def get_messages(session: AsyncSession) -> List[Message]:
+async def get_messages(session: AsyncSession) -> list[Message]:
     """
     Получает все сообщения из базы данных
 
@@ -41,7 +40,7 @@ async def get_messages(session: AsyncSession) -> List[Message]:
     messages = result.scalars().all()
     return list(messages)
 
-async def get_latest_messages(session: AsyncSession, limit: int) -> List[Message]:
+async def get_latest_messages(session: AsyncSession, limit: int) -> list[Message]:
     """
     Получает указанное количество последних сообщений
 
@@ -60,7 +59,7 @@ async def get_latest_messages(session: AsyncSession, limit: int) -> List[Message
     messages.reverse()
     return messages
 
-async def get_messages_after(session: AsyncSession, message_id: int) -> List[Message]:
+async def get_messages_after(session: AsyncSession, message_id: int, limit: int = 1000) -> list[Message]:
     """
     Получает все сообщения, созданные после указанного идентификатора сообщения
 
@@ -76,7 +75,7 @@ async def get_messages_after(session: AsyncSession, message_id: int) -> List[Mes
         поэтому условие "id > message_id" эквивалентно "сообщения после".
     """
 
-    stmt = select(Message).where(Message.id > message_id)
+    stmt = select(Message).where(Message.id > message_id).order_by(Message.id.asc()).limit(limit)
     result = await session.execute(stmt)
     messages = result.scalars().all()
     return list(messages)
@@ -104,7 +103,7 @@ async def delete_old_messages(session: AsyncSession) -> int:
     await session.commit()
     return int(result.rowcount)
 
-async def get_messages_by_sender(session: AsyncSession, sender_id: int) -> List[Message]:
+async def get_messages_by_sender(session: AsyncSession, sender_id: int) -> list[Message]:
     """
     Получает все сообщения указанного отправителя
 

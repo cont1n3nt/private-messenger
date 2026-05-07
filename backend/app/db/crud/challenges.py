@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update, or_, and_
 from app.db.models import Challenge
-from typing import Union
 import datetime
 
 # NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
@@ -12,7 +11,7 @@ async def create_challenge(session: AsyncSession, challenge_data: dict) -> Chall
     await session.flush()
     return challenge
 
-async def get_active_challenge(session: AsyncSession, user_id: int) -> Union[Challenge, None]:
+async def get_active_challenge(session: AsyncSession, user_id: int) -> Challenge | None:
     """
     Получает активный (неиспользованный и неистекший) челлендж для указанного пользователя
 
@@ -30,9 +29,9 @@ async def get_active_challenge(session: AsyncSession, user_id: int) -> Union[Cha
         - user_id соответствует указанному
     """
 
-    stmt = select(Challenge).where(and_(Challenge.expires_at >= datetime.datetime.now(datetime.timezone.utc), Challenge.used == 0, Challenge.user_id == user_id)).execution_options(synchronize_session=False)
+    stmt = select(Challenge).where(and_(Challenge.expires_at >= datetime.datetime.now(datetime.timezone.utc), Challenge.used == False, Challenge.user_id == user_id)).order_by(Challenge.expires_at.desc()).limit(1).execution_options(synchronize_session=False)
     result = await session.execute(stmt)
-    challenge = result.scalar_one_or_none()
+    challenge = result.scalars().first()
     return challenge
 
 async def delete_challenge(session: AsyncSession, user_id: int) -> None:
@@ -73,7 +72,7 @@ async def delete_expired_challenges(session: AsyncSession) -> int:
         Функция автоматически выполняет commit после удаления.
     """
 
-    stmt = delete(Challenge).where(or_(Challenge.expires_at < datetime.datetime.now(datetime.timezone.utc), Challenge.used == 1)).execution_options(synchronize_session=False)
+    stmt = delete(Challenge).where(or_(Challenge.expires_at < datetime.datetime.now(datetime.timezone.utc), Challenge.used == True)).execution_options(synchronize_session=False)
     result  = await session.execute(stmt)
     await session.commit()
     return int(result.rowcount)
@@ -98,11 +97,11 @@ async def use_challenge(session: AsyncSession, challenge_hex: str, user_id: int)
             and_(
                 Challenge.challenge == challenge_hex,
                 Challenge.user_id == user_id,
-                Challenge.used == 0,
+                Challenge.used == False,
                 Challenge.expires_at >= datetime.datetime.now(datetime.timezone.utc),
             )
         )
-        .values(used=1)
+        .values(used=True)
         .execution_options(synchronize_session=False)
     )
     result = await session.execute(stmt)

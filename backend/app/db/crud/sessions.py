@@ -24,7 +24,7 @@ async def create_session(session: AsyncSession, session_data: dict) -> Session:
     session.add(session_)
     return session_
 
-async def get_session_by_token(session: AsyncSession, token: str) -> Session:
+async def get_session_by_token(session: AsyncSession, token: str) -> Session | None:
     """
     Получает сессию по токену (первичному ключу)
 
@@ -54,14 +54,13 @@ async def delete_session(session: AsyncSession, token: str) -> None:
         None
 
     Note:
-        Функция автоматически выполняет commit после удаления.
-        Если сессия с указанным токеном не найдена, ничего не происходит.
+         Функция не выполняет автоматический commit. Вызывающий код должен самостоятельно выполнить session.commit().
+         Если сессия с указанным токеном не найдена, ничего не происходит.
     """
 
     session_ = await session.get(Session, token)
     if session_:
         await session.delete(session_)
-        await session.commit()
 
 async def delete_expired_sessions(session: AsyncSession) -> int:
     """

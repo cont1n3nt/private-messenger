@@ -69,13 +69,11 @@ async def client(engine):
 
 @pytest_asyncio.fixture
 async def registered_user(db_session):
-    """Создаёт пользователя с валидными 32-байтными ключами."""
+    """Создаёт пользователя без публичных ключей."""
     from app.db.crud import create_user
 
     user = await create_user(db_session, {
         "username": "alice",
-        "sign_public_key": b"\x01" * 32,
-        "dh_public_key":   b"\x02" * 32,
     })
     await db_session.commit()
     await db_session.refresh(user)
