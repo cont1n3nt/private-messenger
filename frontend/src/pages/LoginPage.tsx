@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../store/AuthContext'
+import WallpaperLayer from '../components/wallpaper/WallpaperLayer'
+import LoginCard from '../components/login/LoginCard'
 import type { ImportedKeys } from '../types'
 
 export default function LoginPage() {
@@ -48,52 +50,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <h1>Private Messenger</h1>
-        <p className="login-subtitle">E2E encrypted group chat</p>
+    <div className="relative h-[100dvh] flex items-center justify-center overflow-hidden">
+      <WallpaperLayer seed={99} density={30} showOrbs />
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="username">Username</label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. kosmo"
-            required
-            autoFocus
-          />
-
-          <details className="key-import-section">
-            <summary>Import keys (optional)</summary>
-            <p className="key-import-hint">
-              Paste the content of <code>keys/username.json</code> from the
-              backend. Only needed on first login from this browser.
-            </p>
-            <textarea
-              value={keyJson}
-              onChange={(e) => setKeyJson(e.target.value)}
-              placeholder='{"username":"...","sign_private_key":"...","sign_public_key":"...","dh_private_key":"...","dh_public_key":"..."}'
-              rows={5}
-            />
-          </details>
-
-          {error && <div className="login-error">{error}</div>}
-
-          <button type="submit" disabled={loading || !username.trim()}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-
-          <button
-            type="button"
-            className="reset-keys-btn"
-            onClick={handleResetKeys}
-            disabled={!username.trim()}
-          >
-            Reset stored keys
-          </button>
-        </form>
+      <div className="relative z-10 flex items-center justify-center w-full">
+        <LoginCard
+          username={username}
+          onUsernameChange={setUsername}
+          keyJson={keyJson}
+          onKeyJsonChange={setKeyJson}
+          error={error}
+          loading={loading}
+          onSubmit={handleSubmit}
+          onResetKeys={handleResetKeys}
+        />
       </div>
     </div>
   )
