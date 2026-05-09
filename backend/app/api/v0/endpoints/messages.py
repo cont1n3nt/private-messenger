@@ -163,6 +163,12 @@ async def edit_message(
     """
     
     message = await db.get(Message, message_data.message_id)
+
+    if message is None:
+        return APIResponse.error(
+            status_code=404,
+            message="Message not found"
+        )
     
     if message.sender_id != current_user.id: # проверка, что человек редактирует свое сообщение
         return APIResponse.error(
@@ -217,6 +223,12 @@ async def delete_message(
 
     message = await db.get(Message, message_data.message_id)
     
+    if message is None:
+        return APIResponse.error(
+            status_code=404,
+            message="Message not found"
+        )
+
     if message.sender_id != current_user.id:  # проверка, что человек удаляет свое сообщение
         return APIResponse.error(
             status_code=403,

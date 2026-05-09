@@ -105,4 +105,4 @@ async def use_challenge(session: AsyncSession, challenge_hex: str, user_id: int)
         .execution_options(synchronize_session=False)
     )
     result = await session.execute(stmt)
-    return result.rowcount == 1
+    return bool(result.rowcount == 1)

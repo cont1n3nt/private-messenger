@@ -138,7 +138,7 @@ async def delete_message(session: AsyncSession, message_id: int) -> bool:
     result = await session.execute(stmt)
     await session.commit()
     
-    return result.rowcount > 0
+    return bool(result.rowcount > 0)
 
 async def update_message_content(session: AsyncSession, message_id: int, ciphertext: bytes) -> Message | None:
     """
