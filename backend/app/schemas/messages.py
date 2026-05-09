@@ -10,6 +10,13 @@ class SendMessageRequest(BaseModel):
     ciphertext: str = Field(..., max_length=65536, pattern=_B64_PATTERN)
     nonce: str = _HEX48
 
+class EditMessageRequest(BaseModel):
+    message_id: int = Field(..., gt=0)
+    ciphertext: str = Field(..., max_length=65536, pattern=_B64_PATTERN)
+    nonce: str = _HEX48
+
+class DeleteMessageRequest(BaseModel):
+    message_id: int = Field(..., gt=0)
 
 class MessageOut(BaseModel):
     id: int
@@ -17,6 +24,7 @@ class MessageOut(BaseModel):
     ciphertext: str
     nonce: str
     created_at: datetime
+    edited_content: bool
 
     @field_validator("ciphertext", mode="before")
     @classmethod
@@ -31,4 +39,5 @@ class MessageOut(BaseModel):
         if isinstance(v, bytes):
             return v.hex()
         return v
+    
     model_config = {"from_attributes": True}

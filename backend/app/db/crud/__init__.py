@@ -12,6 +12,8 @@ from .messages import (
     get_messages_after,
     get_messages_by_sender,
     delete_old_messages,
+    delete_message,
+    update_message_content
 )
 from .sessions import (
     create_session,
@@ -44,6 +46,8 @@ __all__ = [
     "get_messages_after",
     "get_messages_by_sender",
     "delete_old_messages",
+    "delete_message",
+    "update_message_content",
     # sessions
     "create_session",
     "get_session_by_token",

@@ -117,3 +117,50 @@ async def get_messages_by_sender(session: AsyncSession, sender_id: int) -> list[
     stmt = select(Message).where(Message.sender_id == sender_id).order_by(Message.id.asc())
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+async def delete_message(session: AsyncSession, message_id: int) -> bool:
+    """
+    Удаляет сообщение по ID
+
+    Args:
+        session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с БД.
+        message_id (int): ID удаляемого сообщения.
+    
+    Returns:
+        bool: True если сообщение было удалено, False если не найдено.
+
+    Note:
+        Функция автоматически выполняет commit после удаления.
+        Функция НЕ проверяет, является ли инициатор удаления отправителем удаляемого сообщения.
+    """
+
+    stmt = delete(Message).where(Message.id == message_id)
+    result = await session.execute(stmt)
+    await session.commit()
+    
+    return result.rowcount > 0
+
+async def update_message_content(session: AsyncSession, message_id: int, ciphertext: bytes) -> Message | None:
+    """
+    Обновляет содержимое сообщения
+
+    Args:
+        session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с БД.
+        message_id (int): ID сообщения для изменения.
+        ciphertext (bytes): Новый зашифрованный текст.
+    
+    Returns:
+        Обновленный объект Message, либо None, если искомое сообщение не найдено.
+
+    Note:
+        Функция автоматически выполняет commit после изменения.
+        Функция НЕ проверяет, является ли инициатор изменения отправителем изменяемого сообщения.
+    """
+
+    message = await session.get(Message, message_id)
+    if message:
+        setattr(message, "ciphertext", ciphertext)
+        setattr(message, "edited_content", True)
+        await session.commit()
+        await session.refresh(message)
+    return message
