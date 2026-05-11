@@ -46,7 +46,7 @@ async def get_messages(
     if after_id is not None:
         messages = await crud.get_messages_after(
             db,
-            after_id=after_id,
+            message_id=after_id,
             limit=limit if limit is not None else 1000
         )
     elif limit is not None:
