@@ -1,10 +1,71 @@
-import { memo, useRef } from 'react'
+import { memo, useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { DecryptedMessage } from '../../store/ChatContext'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { detectLanguage } from '../../utils/languageDetector'
+
+interface CodeBlockProps {
+  children: React.ReactNode
+  className?: string
+}
+
+function CodeBlock({ children, className }: CodeBlockProps) {
+  const codeRef = useRef<HTMLPreElement>(null)
+  const [copied, setCopied] = useState(false)
+  const [detectedLang, setDetectedLang] = useState<string>('')
+
+  useEffect(() => {
+    if (codeRef.current) {
+      const codeElement = codeRef.current.querySelector('code')
+      const text = codeElement?.textContent ?? codeRef.current.textContent ?? ''
+      setDetectedLang(detectLanguage(text))
+    }
+  }, [])
+
+  const explicitLang = className?.replace(/language-/, '')
+  const language = explicitLang || detectedLang || 'Text'
+
+  const handleCopy = async () => {
+    if (!codeRef.current) return
+    const codeElement = codeRef.current.querySelector('code')
+    const text = codeElement?.textContent ?? ''
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="relative group my-1 rounded-lg overflow-hidden">
+      <pre ref={codeRef} className="overflow-x-auto p-3 bg-black/30 rounded-lg">
+        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/[0.08] select-none">
+          <span className="text-[11px] font-medium text-white/70 uppercase tracking-wide">
+            {language}
+          </span>
+          <button
+            onClick={handleCopy}
+            className="p-1 rounded-md transition-all duration-200 text-white/40 hover:text-white/80 hover:bg-white/[0.1]"
+            title={copied ? 'Скопировано' : 'Копировать код'}
+          >
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            )}
+          </button>
+        </div>
+        {children}
+      </pre>
+    </div>
+  )
+}
 
 export interface ContextMenuEvent {
   x: number
@@ -48,10 +109,11 @@ const MessageBubble = memo(function MessageBubble({
   const showSender = !isMine && !isConsecutive
   const nickColor = userColors[msg.sender_id]
 
-  const time = new Date(msg.created_at).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const time = (() => {
+    const isoString = msg.created_at.endsWith('Z') ? msg.created_at : msg.created_at + 'Z'
+    const localDate = new Date(isoString)
+    return localDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', hour12: false })
+  })()
 
   const radius = getBubbleRadius(isMine, isLastInGroup)
 
@@ -119,10 +181,19 @@ const MessageBubble = memo(function MessageBubble({
           isMine
             ? isConsecutive ? 'bubble-mine-consecutive' : 'bubble-mine'
             : isConsecutive ? 'bubble-other-consecutive' : 'bubble-other',
-          'max-w-[78%] sm:max-w-[68%] px-3.5 pt-2.5 pb-2',
+          'relative max-w-[78%] sm:max-w-[68%] min-w-[80px] px-3.5 pt-2.5 pb-2',
         )}
         style={{ borderRadius: radius }}
+        tabIndex={0}
         onContextMenu={handleContextMenu}
+        onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') {
+            const selection = window.getSelection()
+            if (selection && selection.toString().trim()) {
+              navigator.clipboard.writeText(selection.toString())
+            }
+          }
+        }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
@@ -174,12 +245,28 @@ const MessageBubble = memo(function MessageBubble({
                     {alt || src}
                   </a>
                 ),
+                pre: ({ children }) => {
+                  const codeChild = children as React.ReactElement<{ className?: string }> | null
+                  const className = codeChild?.props?.className
+                  return <CodeBlock className={className}>{children}</CodeBlock>
+                },
+                code: ({ className, children, ...props }) => {
+                  const isInline = !className
+                  if (isInline) {
+                    return (
+                      <code className="px-1.5 py-0.5 rounded bg-white/10 text-[13px]" {...props}>
+                        {children}
+                      </code>
+                    )
+                  }
+                  return <code className={className} {...props}>{children}</code>
+                },
               }}
             >
               {msg.text.replace(/\n/g, '  \n')}
             </ReactMarkdown>
           </div>
-          <div className="shrink-0 flex items-center gap-[3px] text-[10px] text-white/35 tabular-nums leading-none whitespace-nowrap">
+          <div className="shrink-0 flex items-center gap-[3px] text-[10px] text-white/35 tabular-nums leading-none whitespace-nowrap msg-time">
             {msg.edited && (
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted/40 shrink-0">
                 <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />

@@ -157,6 +157,12 @@ const MessageInput = memo(function MessageInput({
                   e.preventDefault()
                   e.currentTarget.form?.requestSubmit()
                 }
+                if (e.ctrlKey || e.metaKey) {
+                  const code = e.code
+                  if (code === 'KeyV' || code === 'KeyC' || code === 'KeyX' || code === 'KeyA' || code === 'KeyZ') {
+                    e.stopPropagation()
+                  }
+                }
               }}
               placeholder={isEditing ? 'Edit message' : 'Message'}
               disabled={disabled || sending}

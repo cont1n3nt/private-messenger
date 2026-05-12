@@ -88,12 +88,16 @@ body,
   }
 
   .bubble-mine {
+    padding-left: 15px;
+    padding-right: 20px;
     background: var(--color-bubble-mine);
     border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
   }
 
   .bubble-mine-consecutive {
+    padding-left: 15px;
+    padding-right: 20px;
     background: color-mix(in srgb, var(--color-bubble-mine) 85%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.03);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -214,12 +218,12 @@ body,
   }
 
   .animate-in {
-    animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) both;
     will-change: opacity;
   }
 
   .animate-slide-up {
-    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: slide-up 1s cubic-bezier(0.16, 1, 0.3, 1) both;
     will-change: opacity, transform;
   }
 }
@@ -286,6 +290,17 @@ body,
   100% { transform: translate(5%, 0); }
 }
 
+.msg-time {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  margin: 0;
+}
+
+.bubble-hover:has(.msg-time) {
+  padding-bottom: 16px;
+}
+
 .markdown-content > *:first-child {
   margin-top: 0;
 }
@@ -331,7 +346,6 @@ body,
 }
 .markdown-content pre {
   margin: 0.35em 0;
-  padding: 0.5em 0.75em;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   overflow-x: auto;
