@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.1] - 2026-05-12
+
+Полировка UI: новая система анимаций, авто-высота поля ввода, улучшенная стилизация сообщений и производительность.
+
+### Changed
+- **Шрифт**: Inter → Roboto (`index.html`)
+- **Система анимаций**:
+  - Сообщения обёрнуты в `AnimatePresence mode="popLayout"` — плавный enter/exit
+  - Spring-анимации заменены на cubic-bezier `(0.16, 1, 0.3, 1)` — более отзывчивые
+  - MessageBubble: добавлен `layout` + exit-анимация (opacity, y)
+  - DateSeparator: анимация с учётом `reducedMotion`
+  - ReplyPreview: spring → easeOut (быстрее)
+  - FloatingHeader: spring → cubic-bezier
+  - FloatingOrb: удалены framer-motion анимации (статичный div)
+  - MessageContextMenu: staggered entry с `willChange: transform`
+- **MessageBubble**:
+  - Динамический border-radius ("хвостик" у последнего в группе)
+  - Замена CheckMark на SVG-иконку редактирования
+  - `edited` текст → pencil icon
+  - flex-col → `flex flex-wrap items-end gap-1`
+  - Перенос строк через markdown (`  \n`)
+  - Ширина: `max-w-[75%]` → `max-w-[78%]`
+- **MessageInput**:
+  - `<input>` → `<textarea>` с авто-высотой (scrollHeight)
+  - Enter → отправка, Shift+Enter → новая строка
+  - Разделитель reply/edit режима анимирован
+  - `AnimatePresence mode="popLayout"` → default
+- **index.css**: добавлены `.scrollbar-input`, `slide-up` keyframes
+- **NoiseTexture**: упрощён рендеринг
+
 ## [0.1.0] - 2026-05-12
 
 Private Messenger — первый стабильный публичный релиз. Полноценный end-to-end шифрованный групповой чат с веб-интерфейсом, поддержкой реального времени, редактированием/удалением/ответами на сообщения и Markdown-разметкой.
