@@ -39,7 +39,7 @@ function CodeBlock({ children, className }: CodeBlockProps) {
 
   return (
     <div className="relative group my-1 rounded-lg overflow-hidden">
-      <pre ref={codeRef} className="overflow-x-auto p-3 bg-black/30 rounded-lg">
+      <pre ref={codeRef} className="overflow-x-auto p-3 bg-black/30 rounded-lg scrollbar-code">
         <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/[0.08] select-none">
           <span className="text-[11px] font-medium text-white/70 uppercase tracking-wide">
             {language}

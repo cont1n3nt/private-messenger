@@ -160,6 +160,28 @@ body,
     background: rgba(255, 255, 255, 0.22);
   }
 
+  .scrollbar-code {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+
+  .scrollbar-code::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .scrollbar-code::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-code::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  .scrollbar-code::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
   .edge-light::after {
     content: '';
     position: absolute;
