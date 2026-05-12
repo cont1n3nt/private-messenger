@@ -74,14 +74,16 @@ export default function MessageContextMenu({
               key={i}
               role="menuitem"
               className={[
-                'flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-[13px] font-medium leading-none transition-all duration-150 rounded-[10px]',
+                'flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-[13px] font-medium leading-none rounded-[10px]',
                 'focus-visible:outline-none focus-visible:bg-white/[0.06]',
                 item.danger
                   ? 'text-danger hover:bg-red-500/[0.10] active:bg-red-500/[0.15]'
                   : 'text-text-primary hover:bg-white/[0.06] active:bg-white/[0.10]',
+                i === 0 ? 'animate-slide-up' : '',
               ].join(' ')}
               style={{
-                animation: `slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) ${0.03 * i}s both`,
+                animation: i > 0 ? `slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) ${0.03 * i}s both` : undefined,
+                willChange: 'opacity, transform',
               }}
               onClick={() => { item.action(); onClose() }}
               onMouseDown={(e) => e.preventDefault()}

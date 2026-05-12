@@ -1,5 +1,4 @@
 import { memo } from 'react'
-import { motion } from 'framer-motion'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 interface FloatingOrbProps {
@@ -22,7 +21,7 @@ const FloatingOrb = memo(function FloatingOrb({
   const reduced = useReducedMotion()
 
   return (
-    <motion.div
+    <div
       className="absolute rounded-full pointer-events-none"
       style={{
         width: size,
@@ -30,22 +29,12 @@ const FloatingOrb = memo(function FloatingOrb({
         left: x,
         top: y,
         background: `radial-gradient(circle, ${color}, transparent 70%)`,
-        filter: 'blur(60px)',
-      }}
-      animate={
-        reduced
-          ? {}
-          : {
-              x: [0, 22, -16, 12, -8, 0],
-              y: [0, -18, 14, -12, 6, 0],
-              scale: [1, 1.08, 0.95, 1.04, 0.98, 1],
-            }
-      }
-      transition={{
-        duration,
-        repeat: Infinity,
-        ease: 'easeInOut',
-        delay,
+        filter: 'blur(40px)',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+        animation: reduced
+          ? 'none'
+          : `orb-float ${duration}s ease-in-out ${delay}s infinite`,
       }}
     />
   )

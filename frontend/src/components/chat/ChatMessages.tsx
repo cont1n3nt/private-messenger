@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import type { DecryptedMessage } from '../../store/ChatContext'
 import MessageBubble from './MessageBubble'
 import type { ContextMenuEvent } from './MessageBubble'
@@ -90,25 +91,27 @@ export default function ChatMessages({
     >
       {waitingContent && <WaitingIndicator>{waitingContent}</WaitingIndicator>}
 
-      {items.map((item) => {
-        if (item.type === 'date') {
-          return <DateSeparator key={item.key} label={item.label} />
-        }
+      <AnimatePresence mode="popLayout">
+        {items.map((item) => {
+          if (item.type === 'date') {
+            return <DateSeparator key={item.key} label={item.label} />
+          }
 
-        return (
-          <MessageBubble
-            key={item.key}
-            msg={item.msg}
-            myUserId={myUserId}
-            userMap={userMap}
-            userColors={userColors}
-            isConsecutive={item.isConsecutive}
-            isLastInGroup={item.isLastInGroup}
-            onContextMenu={onContextMenu}
-            allMessages={messages}
-          />
-        )
-      })}
+          return (
+            <MessageBubble
+              key={item.key}
+              msg={item.msg}
+              myUserId={myUserId}
+              userMap={userMap}
+              userColors={userColors}
+              isConsecutive={item.isConsecutive}
+              isLastInGroup={item.isLastInGroup}
+              onContextMenu={onContextMenu}
+              allMessages={messages}
+            />
+          )
+        })}
+      </AnimatePresence>
 
       <div ref={bottomRef} className="h-1" />
     </div>

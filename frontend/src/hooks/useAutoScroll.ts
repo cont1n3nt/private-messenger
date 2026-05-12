@@ -35,7 +35,10 @@ export function useAutoScroll(_deps: unknown[], scrollOffset = 0) {
     container.addEventListener('scroll', handleScroll, { passive: true })
 
     const observer = new MutationObserver(() => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null
         if (!userScrolledUpRef.current) {
@@ -47,12 +50,15 @@ export function useAutoScroll(_deps: unknown[], scrollOffset = 0) {
       })
     })
 
-    observer.observe(container, { childList: true })
+    observer.observe(container, { childList: true, subtree: false })
 
     return () => {
       container.removeEventListener('scroll', handleScroll)
       observer.disconnect()
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
     }
   }, [scrollOffset])
 

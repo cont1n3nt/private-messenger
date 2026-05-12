@@ -31,7 +31,7 @@ const MessageInput = memo(function MessageInput({
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const reduced = useReducedMotion()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const prevEditId = useRef<number | null>(null)
 
   useEffect(() => {
@@ -53,6 +53,13 @@ const MessageInput = memo(function MessageInput({
   useEffect(() => {
     inputRef.current?.focus()
   }, [sending])
+
+  useEffect(() => {
+    const textarea = inputRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }, [text])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -85,8 +92,8 @@ const MessageInput = memo(function MessageInput({
 
   return (
     <form onSubmit={handleSubmit} className="flex items-end gap-1.5">
-      <div className="glass-input flex-1 rounded-2xl shadow-lg shadow-black/30 px-3 py-1.5 sm:px-4">
-        <AnimatePresence mode="popLayout">
+      <div className="glass-input flex-1 rounded-2xl shadow-lg shadow-black/30 px-3 py-2 sm:px-4">
+        <AnimatePresence>
           {isReplying && (
             <ReplyPreview
               key={`reply-${inputMode.message.id}`}
@@ -100,7 +107,6 @@ const MessageInput = memo(function MessageInput({
           {isEditing && (
             <motion.div
               key="edit-indicator"
-              layout={!reduced}
               initial={!reduced ? { opacity: 0, y: -8 } : undefined}
               animate={!reduced ? { opacity: 1, y: 0 } : undefined}
               exit={!reduced ? { opacity: 0, y: -6 } : undefined}
@@ -124,26 +130,44 @@ const MessageInput = memo(function MessageInput({
               </button>
             </motion.div>
           )}
+          {(isReplying || isEditing) && (
+            <motion.div
+              key="input-mode-sep"
+              className="h-[1px] bg-white/[0.05] my-1 overflow-hidden"
+              initial={!reduced ? { opacity: 0, scaleY: 0 } : undefined}
+              animate={!reduced ? { opacity: 1, scaleY: 1 } : undefined}
+              exit={!reduced ? { opacity: 0, scaleY: 0 } : undefined}
+              transition={!reduced ? { duration: 0.1, ease: 'easeOut' } : undefined}
+            />
+          )}
         </AnimatePresence>
-
-        {(isReplying || isEditing) && (
-          <div className="h-[1px] bg-white/[0.05] my-1" />
-        )}
 
         <div className="flex items-center gap-1">
           <div className="flex-1 min-w-0">
-            <input
+            <textarea
               ref={inputRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = `${e.target.scrollHeight}px`
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  e.currentTarget.form?.requestSubmit()
+                }
+              }}
               placeholder={isEditing ? 'Edit message' : 'Message'}
               disabled={disabled || sending}
               autoFocus
+              rows={1}
               className={clsx(
-                'w-full h-[30px] text-text-primary text-[15px] leading-[20px]',
-                'bg-transparent outline-none',
+                'w-full max-h-[168px] text-text-primary text-[15px] leading-[20px]',
+                'bg-transparent outline-none resize-none p-0 border-0',
                 'placeholder:text-text-muted/30',
                 'focus:placeholder:text-text-muted/15',
+                'scrollbar-input',
               )}
             />
           </div>

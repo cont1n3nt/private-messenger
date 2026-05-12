@@ -21,7 +21,7 @@ const FloatingHeader = memo(function FloatingHeader({
       className="sticky top-0 z-20 glass-header pt-[env(safe-area-inset-top)] relative edge-light"
       initial={!reduced ? { opacity: 0, y: -8 } : undefined}
       animate={!reduced ? { opacity: 1, y: 0 } : undefined}
-      transition={!reduced ? { type: 'spring', duration: 0.4, bounce: 0.12 } : undefined}
+      transition={!reduced ? { duration: 0.25, ease: [0.16, 1, 0.3, 1] } : undefined}
     >
       <div className="flex justify-center w-full">
         <div className="flex items-center gap-3 px-4 sm:px-0 h-[52px] w-full max-w-[720px]">

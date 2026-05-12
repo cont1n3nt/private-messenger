@@ -25,7 +25,7 @@
   --radius-pill: 22px;
   --radius-card: 16px;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: Roboto, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Code', monospace;
 }
 
@@ -48,12 +48,13 @@ body,
       rgba(255, 255, 255, 0.04) 0%,
       rgba(255, 255, 255, 0.01) 100%
     );
-    backdrop-filter: blur(60px) saturate(160%) brightness(1.05);
-    -webkit-backdrop-filter: blur(60px) saturate(160%) brightness(1.05);
+    backdrop-filter: blur(24px) saturate(160%) brightness(1.05);
+    -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.35),
       inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    will-change: backdrop-filter;
   }
 
   .glass-subtle {
@@ -62,60 +63,65 @@ body,
       rgba(255, 255, 255, 0.03) 0%,
       rgba(255, 255, 255, 0.01) 100%
     );
-    backdrop-filter: blur(40px) saturate(150%) brightness(1.03);
-    -webkit-backdrop-filter: blur(40px) saturate(150%) brightness(1.03);
+    backdrop-filter: blur(20px) saturate(150%) brightness(1.03);
+    -webkit-backdrop-filter: blur(20px) saturate(150%) brightness(1.03);
     border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    will-change: backdrop-filter;
   }
 
   .glass-header {
     background: rgba(15, 15, 17, 0.7);
-    backdrop-filter: blur(40px) saturate(160%);
-    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    will-change: backdrop-filter;
   }
 
   .glass-input {
     background: rgba(26, 26, 29, 0.85);
-    backdrop-filter: blur(32px) saturate(160%) brightness(1.05);
-    -webkit-backdrop-filter: blur(32px) saturate(160%) brightness(1.05);
+    backdrop-filter: blur(16px) saturate(160%) brightness(1.05);
+    -webkit-backdrop-filter: blur(16px) saturate(160%) brightness(1.05);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-bottom: none;
+    will-change: backdrop-filter;
   }
 
   .bubble-mine {
     background: var(--color-bubble-mine);
     border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
   }
 
   .bubble-mine-consecutive {
     background: color-mix(in srgb, var(--color-bubble-mine) 85%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.03);
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   .bubble-other {
     background: var(--color-bubble-other);
     border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.05);
   }
 
   .bubble-other-consecutive {
     background: color-mix(in srgb, var(--color-bubble-other) 85%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.02);
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.03);
   }
 
   .bubble-hover {
     transition: background 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: background, border-color, box-shadow;
   }
 
   .bubble-hover:hover {
     background: var(--color-bubble-other-hover);
   }
 
-  .bubble-mine.bubble-hover:hover {
+  .bubble-mine.bubble-hover:hover,
+  .bubble-mine-consecutive.bubble-hover:hover {
     background: var(--color-bubble-mine-hover);
   }
 
@@ -126,6 +132,28 @@ body,
 
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
+  }
+
+  .scrollbar-input {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+
+  .scrollbar-input::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-input::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-input::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+
+  .scrollbar-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
   }
 
   .edge-light::after {
@@ -187,10 +215,23 @@ body,
 
   .animate-in {
     animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity;
   }
 
   .animate-slide-up {
     animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity, transform;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -221,6 +262,14 @@ body,
 
 @keyframes draw-check {
   to { stroke-dashoffset: 0; }
+}
+
+@keyframes orb-float {
+  0%, 100% { translate: 0px 0px; scale: 1; }
+  20% { translate: 22px -18px; scale: 1.08; }
+  40% { translate: -16px 14px; scale: 0.95; }
+  60% { translate: 12px -12px; scale: 1.04; }
+  80% { translate: -8px 6px; scale: 0.98; }
 }
 
 @keyframes noise-anim {
@@ -257,8 +306,13 @@ body,
 .markdown-content h1 { font-size: 1.25em; }
 .markdown-content h2 { font-size: 1.15em; }
 .markdown-content h3 { font-size: 1.05em; }
-.markdown-content ul,
+.markdown-content ul {
+  list-style-type: disc;
+  padding-left: 1.25em;
+  margin: 0.25em 0;
+}
 .markdown-content ol {
+  list-style-type: decimal;
   padding-left: 1.25em;
   margin: 0.25em 0;
 }

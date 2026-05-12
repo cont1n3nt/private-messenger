@@ -1,10 +1,9 @@
-import { memo, useRef, type CSSProperties } from 'react'
+import { memo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { DecryptedMessage } from '../../store/ChatContext'
-import CheckMark from '../ui/CheckMark'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 export interface ContextMenuEvent {
@@ -25,8 +24,10 @@ interface MessageBubbleProps {
   allMessages?: DecryptedMessage[]
 }
 
-function getBubbleRadius(): CSSProperties['borderRadius'] {
-  return '18px'
+function getBubbleRadius(isMine: boolean, isLastInGroup: boolean): string {
+  if (!isLastInGroup) return '18px'
+  if (isMine) return '18px 18px 6px 18px'
+  return '6px 18px 18px 18px'
 }
 
 const MessageBubble = memo(function MessageBubble({
@@ -35,6 +36,7 @@ const MessageBubble = memo(function MessageBubble({
   userMap,
   userColors,
   isConsecutive,
+  isLastInGroup,
   onContextMenu,
   allMessages,
 }: MessageBubbleProps) {
@@ -51,7 +53,7 @@ const MessageBubble = memo(function MessageBubble({
     minute: '2-digit',
   })
 
-  const radius = getBubbleRadius()
+  const radius = getBubbleRadius(isMine, isLastInGroup)
 
   const repliedMsg = msg.reply_to_message >= 0 && allMessages
     ? allMessages.find((m) => m.id === msg.reply_to_message)
@@ -105,9 +107,11 @@ const MessageBubble = memo(function MessageBubble({
         isMine ? 'justify-end' : 'justify-start',
         !isConsecutive ? 'mt-3' : 'mt-[2px]',
       )}
-      initial={!reduced ? { opacity: 0, y: 8, scale: 0.97 } : undefined}
-      animate={!reduced ? { opacity: 1, y: 0, scale: 1 } : undefined}
-      transition={!reduced ? { type: 'spring', duration: 0.35, bounce: 0.15 } : undefined}
+      layout={!reduced}
+      initial={!reduced ? { opacity: 0, y: 12 } : undefined}
+      animate={!reduced ? { opacity: 1, y: 0 } : undefined}
+      exit={!reduced ? { opacity: 0, y: -8 } : undefined}
+      transition={!reduced ? { duration: 0.2, ease: [0.16, 1, 0.3, 1], layout: { duration: 0.2, ease: [0.16, 1, 0.3, 1] } } : undefined}
     >
       <div
         className={clsx(
@@ -115,7 +119,7 @@ const MessageBubble = memo(function MessageBubble({
           isMine
             ? isConsecutive ? 'bubble-mine-consecutive' : 'bubble-mine'
             : isConsecutive ? 'bubble-other-consecutive' : 'bubble-other',
-          'max-w-[75%] sm:max-w-[65%] px-[13px] pt-[9px] pb-[7px]',
+          'max-w-[78%] sm:max-w-[68%] px-3.5 pt-2.5 pb-2',
         )}
         style={{ borderRadius: radius }}
         onContextMenu={handleContextMenu}
@@ -125,7 +129,7 @@ const MessageBubble = memo(function MessageBubble({
       >
         {showSender && (
           <div
-            className="text-[13px] font-semibold mb-[2px] leading-[16px]"
+            className="text-[13px] font-semibold mb-[1px] leading-[16px]"
             style={{ color: nickColor }}
           >
             @{senderName}
@@ -135,7 +139,7 @@ const MessageBubble = memo(function MessageBubble({
         {repliedMsg && (
           <div
             className={clsx(
-              'flex items-start gap-1.5 mb-1.5 px-2 py-1.5 rounded-lg text-[12px] leading-[15px]',
+              'flex items-start gap-1.5 mb-1 px-2 py-1 rounded-lg text-[12px] leading-[15px]',
               'border-l-[3px]',
               isMine ? 'bg-white/[0.06]' : 'bg-white/[0.04]',
             )}
@@ -155,7 +159,7 @@ const MessageBubble = memo(function MessageBubble({
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-end gap-1">
           <div className="markdown-content text-[15px] leading-[21px] text-text-primary break-words min-w-0">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -172,19 +176,16 @@ const MessageBubble = memo(function MessageBubble({
                 ),
               }}
             >
-              {msg.text}
+              {msg.text.replace(/\n/g, '  \n')}
             </ReactMarkdown>
           </div>
-          <div className="flex items-center gap-[3px] self-end">
+          <div className="shrink-0 flex items-center gap-[3px] text-[10px] text-white/35 tabular-nums leading-none whitespace-nowrap">
             {msg.edited && (
-              <span className="text-[10px] text-text-muted/40 leading-none">edited</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted/40 shrink-0">
+                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+              </svg>
             )}
-            <span className="text-[10px] text-text-muted/50 tabular-nums leading-none">
-              {time}
-            </span>
-            {isMine && (
-              <CheckMark read={false} size={11} className="text-accent/30" />
-            )}
+            {time}
           </div>
         </div>
       </div>

@@ -6,7 +6,11 @@ const NoiseTexture = memo(function NoiseTexture() {
       <svg
         className="w-[200%] h-[200%]"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ animation: 'noise-anim 30s steps(10) infinite' }}
+        style={{
+          animation: 'noise-anim 60s steps(10) infinite',
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+        }}
       >
         <filter id="noise-filter">
           <feTurbulence

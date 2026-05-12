@@ -34,13 +34,12 @@ const ReplyPreview = memo(function ReplyPreview({
 
   return (
     <motion.div
-      layout
-      className="flex items-start gap-2 px-1 pt-1.5 pb-1 border-l-[3px] cursor-pointer"
+      className="flex items-start gap-2 px-1 pt-1.5 pb-1 border-l-[3px] cursor-pointer overflow-hidden"
       style={{ borderLeftColor: nickColor }}
       initial={!reduced ? { opacity: 0, y: -8 } : undefined}
       animate={!reduced ? { opacity: 1, y: 0 } : undefined}
       exit={!reduced ? { opacity: 0, y: -6 } : undefined}
-      transition={!reduced ? { type: 'spring', duration: 0.3, bounce: 0.15 } : undefined}
+      transition={!reduced ? { duration: 0.12, ease: 'easeOut' } : undefined}
       onClick={handleClick}
     >
       <div className="flex-1 min-w-0 pl-2">
