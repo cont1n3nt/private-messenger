@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import type { DecryptedMessage } from '../../store/ChatContext'
 import MessageBubble from './MessageBubble'
+import type { ContextMenuEvent } from './MessageBubble'
 import DateSeparator from './DateSeparator'
 import WaitingIndicator from './WaitingIndicator'
 import { isSameDay, formatDateLabel } from '../../utils/date'
@@ -63,23 +64,29 @@ interface ChatMessagesProps {
   messages: DecryptedMessage[]
   myUserId: number
   userMap: Map<number, string>
+  userColors: Record<number, string>
   waitingContent?: ReactNode
+  onContextMenu: (event: ContextMenuEvent) => void
+  scrollOffset?: number
 }
 
 export default function ChatMessages({
   messages,
   myUserId,
   userMap,
+  userColors,
   waitingContent,
+  onContextMenu,
+  scrollOffset = 0,
 }: ChatMessagesProps) {
-  const { bottomRef, containerRef } = useAutoScroll([messages])
+  const { bottomRef, containerRef } = useAutoScroll([messages], scrollOffset)
 
   const items = useMemo(() => processMessages(messages), [messages])
 
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto scrollbar-hidden px-3 sm:px-1 py-2"
+      className="flex-1 overflow-y-auto scrollbar-hidden px-3 sm:px-1 pt-2 pb-[88px]"
     >
       {waitingContent && <WaitingIndicator>{waitingContent}</WaitingIndicator>}
 
@@ -94,8 +101,11 @@ export default function ChatMessages({
             msg={item.msg}
             myUserId={myUserId}
             userMap={userMap}
+            userColors={userColors}
             isConsecutive={item.isConsecutive}
             isLastInGroup={item.isLastInGroup}
+            onContextMenu={onContextMenu}
+            allMessages={messages}
           />
         )
       })}

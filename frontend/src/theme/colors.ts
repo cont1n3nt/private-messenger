@@ -1,32 +1,35 @@
 export const colors = {
   bg: {
-    void: '#020609',
-    deep: '#060d18',
-    base: '#0a1628',
-    elevated: '#0f1d32',
-    surface: '#152238',
+    chat: '#0f0f11',
+    panel: '#1a1a1d',
+    elevated: '#242428',
+    surface: '#2a2a2e',
   },
-  neon: {
-    cyan: '#00f0ff',
-    purple: '#a855f7',
-    pink: '#ec4899',
-    green: '#22c55e',
-    amber: '#f59e0b',
+  bubble: {
+    mine: '#2b5278',
+    other: '#1b1b1e',
+    mineHover: '#31628c',
+    otherHover: '#232326',
   },
-  accent: '#00d4e0',
-  accentDim: '#00a8b3',
+  accent: '#6ab2f5',
+  accentDim: '#5a9fd9',
   text: {
-    primary: '#e2e6eb',
-    secondary: '#7d8b9d',
-    muted: '#505d6f',
+    primary: '#ffffff',
+    secondary: '#a3a3a3',
+    muted: '#6c7887',
   },
-  danger: '#ef4444',
+  danger: '#ef5350',
+  success: '#4caf50',
 } as const
 
-export const neonStrokeColors = [
-  '#00d4e0',
-  '#8b5cf6',
-  '#c084fc',
-  '#22d3ee',
-  '#6366f1',
+export const userNickColors: Record<number, string> = {
+  1: '#6CB2EB',
+  2: '#B794F4',
+  3: '#68D391',
+} as const
+
+export const accentColors = [
+  '#6ab2f5',
+  '#5a9fd9',
+  '#4a8bc4',
 ] as const

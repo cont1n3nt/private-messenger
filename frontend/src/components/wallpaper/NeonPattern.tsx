@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { icons } from './icons'
-import { neonStrokeColors } from '../../theme/colors'
+import { accentColors } from '../../theme/colors'
 
 function mulberry32(seed: number): () => number {
   let s = seed | 0
@@ -75,7 +75,7 @@ function generateInstances(
 const NeonPattern = memo(function NeonPattern({
   seed = 42,
   density = 40,
-  colors = neonStrokeColors,
+  colors = accentColors,
   baseOpacity = 0.12,
 }: NeonPatternProps) {
   const instances = useMemo(

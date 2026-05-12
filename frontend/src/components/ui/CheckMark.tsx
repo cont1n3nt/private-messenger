@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 
 interface CheckMarkProps {
@@ -12,6 +12,20 @@ const CheckMark = memo(function CheckMark({
   size = 16,
   className,
 }: CheckMarkProps) {
+  const pathRef = useRef<SVGPathElement>(null)
+
+  useEffect(() => {
+    const el = pathRef.current
+    if (!el) return
+    const length = el.getTotalLength()
+    el.style.strokeDasharray = `${length}`
+    el.style.strokeDashoffset = `${length}`
+    requestAnimationFrame(() => {
+      el.style.transition = 'stroke-dashoffset 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+      el.style.strokeDashoffset = '0'
+    })
+  }, [])
+
   return (
     <svg
       width={size}
@@ -22,6 +36,7 @@ const CheckMark = memo(function CheckMark({
     >
       {read ? (
         <path
+          ref={pathRef}
           d="M2 12l5 5L20 3M7 12l5 5L22 5"
           stroke="currentColor"
           strokeWidth="2.5"
@@ -30,6 +45,7 @@ const CheckMark = memo(function CheckMark({
         />
       ) : (
         <path
+          ref={pathRef}
           d="M4 12l5 5L20 3"
           stroke="currentColor"
           strokeWidth="2.5"

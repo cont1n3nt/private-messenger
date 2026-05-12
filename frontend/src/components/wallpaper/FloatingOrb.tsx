@@ -36,14 +36,15 @@ const FloatingOrb = memo(function FloatingOrb({
         reduced
           ? {}
           : {
-              x: [0, 18, -12, 8, 0],
-              y: [0, -14, 10, -8, 0],
+              x: [0, 22, -16, 12, -8, 0],
+              y: [0, -18, 14, -12, 6, 0],
+              scale: [1, 1.08, 0.95, 1.04, 0.98, 1],
             }
       }
       transition={{
         duration,
         repeat: Infinity,
-        ease: 'linear',
+        ease: 'easeInOut',
         delay,
       }}
     />

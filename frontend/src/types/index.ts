@@ -11,6 +11,8 @@ export interface Message {
   ciphertext: string
   nonce: string
   created_at: string
+  edited_content?: boolean
+  reply_to_message?: number
 }
 
 export interface KeyPair {

@@ -3,9 +3,9 @@ import type { User } from '../types'
 import { b64Decode } from './keys'
 
 async function hkdfExpand(prk: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', prk, { name: 'HKDF' }, false, ['deriveBits'])
+  const key = await crypto.subtle.importKey('raw', new Uint8Array(prk), { name: 'HKDF' }, false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', info, salt: new Uint8Array(0) },
+    { name: 'HKDF', hash: 'SHA-256', info: new Uint8Array(info), salt: new Uint8Array(0) },
     key,
     length * 8,
   )
@@ -26,7 +26,7 @@ export async function computePairwiseSecrets(
     const lo = Math.min(myUserId, user.id)
     const hi = Math.max(myUserId, user.id)
     const info = new TextEncoder().encode(`private-messenger-ecdh-${lo}-${hi}`)
-    const derived = await hkdfExpand(rawShared, info, 32)
+    const derived = await hkdfExpand(new Uint8Array(rawShared), info, 32)
     secrets.set(user.id, derived)
   }
   return secrets

@@ -140,7 +140,7 @@ async def delete_message(session: AsyncSession, message_id: int) -> bool:
     
     return bool(result.rowcount > 0)
 
-async def update_message_content(session: AsyncSession, message_id: int, ciphertext: bytes) -> Message | None:
+async def update_message_content(session: AsyncSession, message_id: int, ciphertext: bytes, nonce: bytes | None = None) -> Message | None:
     """
     Обновляет содержимое сообщения
 
@@ -148,18 +148,17 @@ async def update_message_content(session: AsyncSession, message_id: int, ciphert
         session (AsyncSession): Асинхронная сессия SQLAlchemy для работы с БД.
         message_id (int): ID сообщения для изменения.
         ciphertext (bytes): Новый зашифрованный текст.
+        nonce (bytes | None): Новый nonce (обновляется, если передан).
     
     Returns:
         Обновленный объект Message, либо None, если искомое сообщение не найдено.
-
-    Note:
-        Функция автоматически выполняет commit после изменения.
-        Функция НЕ проверяет, является ли инициатор изменения отправителем изменяемого сообщения.
     """
 
     message = await session.get(Message, message_id)
     if message:
         setattr(message, "ciphertext", ciphertext)
+        if nonce is not None:
+            setattr(message, "nonce", nonce)
         setattr(message, "edited_content", True)
         await session.commit()
         await session.refresh(message)

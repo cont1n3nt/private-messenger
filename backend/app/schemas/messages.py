@@ -9,6 +9,7 @@ _B64_PATTERN = r"^[A-Za-z0-9+/]+={0,2}$"
 class SendMessageRequest(BaseModel):
     ciphertext: str = Field(..., max_length=65536, pattern=_B64_PATTERN)
     nonce: str = _HEX48
+    reply_to_message: int = Field(default=-1, ge=-1)
 
 class EditMessageRequest(BaseModel):
     message_id: int = Field(..., gt=0)
@@ -25,6 +26,7 @@ class MessageOut(BaseModel):
     nonce: str
     created_at: datetime
     edited_content: bool
+    reply_to_message: int
 
     @field_validator("ciphertext", mode="before")
     @classmethod

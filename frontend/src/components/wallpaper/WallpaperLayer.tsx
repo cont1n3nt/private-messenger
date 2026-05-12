@@ -1,6 +1,4 @@
 import { memo } from 'react'
-import NeonPattern from './NeonPattern'
-import GradientOverlay from './GradientOverlay'
 import NoiseTexture from './NoiseTexture'
 import FloatingOrb from './FloatingOrb'
 
@@ -11,54 +9,19 @@ interface WallpaperLayerProps {
 }
 
 const WallpaperLayer = memo(function WallpaperLayer({
-  seed = 42,
-  density = 40,
-  showOrbs = true,
+  showOrbs = false,
 }: WallpaperLayerProps) {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 30%, #0a1628 0%, #060d18 50%, #020609 100%)',
-        }}
-      />
-
-      <NeonPattern seed={seed} density={density} />
-
-      <GradientOverlay />
-
-      <NoiseTexture />
-
+      <div className="absolute inset-0" style={{ background: '#17212b' }} />
       {showOrbs && (
         <>
-          <FloatingOrb
-            color="rgba(0, 212, 224, 0.05)"
-            size={350}
-            x="70%"
-            y="15%"
-            duration={40}
-            delay={0}
-          />
-          <FloatingOrb
-            color="rgba(139, 92, 246, 0.04)"
-            size={280}
-            x="20%"
-            y="55%"
-            duration={50}
-            delay={8}
-          />
-          <FloatingOrb
-            color="rgba(0, 212, 224, 0.03)"
-            size={220}
-            x="55%"
-            y="78%"
-            duration={35}
-            delay={14}
-          />
+          <FloatingOrb color="rgba(106,178,245,0.15)" size={280} x="10%" y="20%" duration={16} delay={0} />
+          <FloatingOrb color="rgba(139,92,246,0.12)" size={320} x="75%" y="60%" duration={20} delay={-3} />
+          <FloatingOrb color="rgba(0,212,224,0.10)" size={240} x="50%" y="80%" duration={18} delay={-6} />
         </>
       )}
+      <NoiseTexture />
     </div>
   )
 })

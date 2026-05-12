@@ -17,15 +17,15 @@ const NeonButton = forwardRef<HTMLButtonElement, NeonButtonProps>(
     ref,
   ) {
     const baseClasses =
-      'relative font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.97]'
+      'relative font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.96]'
 
     const variantClasses = {
       primary:
-        'bg-accent/80 text-white hover:bg-accent',
+        'bg-accent/80 text-white hover:bg-accent hover:shadow-[0_0_20px_-4px_rgba(106,178,245,0.25)]',
       ghost:
-        'bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.07] hover:text-text-primary',
+        'bg-white/[0.04] text-text-secondary border border-white/[0.06] hover:bg-white/[0.07] hover:text-text-primary hover:border-white/[0.10]',
       danger:
-        'bg-danger/15 text-danger border border-danger/15 hover:bg-danger/25',
+        'bg-danger/15 text-danger border border-danger/15 hover:bg-danger/25 hover:shadow-[0_0_16px_-4px_rgba(239,83,80,0.2)]',
     }
 
     const sizeClasses = {

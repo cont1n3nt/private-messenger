@@ -91,6 +91,7 @@ async def create_message(
         "sender_id": current_user.id,
         "ciphertext": base64.b64decode(message_data.ciphertext),
         "nonce": nonce_bytes,
+        "reply_to_message": message_data.reply_to_message,
         "created_at": datetime.now(timezone.utc),
         "delete_at": datetime.now(timezone.utc) + _MESSAGE_TTL
     }
@@ -177,10 +178,12 @@ async def edit_message(
         )
     
     ciphertext_bytes = base64.b64decode(message_data.ciphertext)
+    nonce_bytes = bytes.fromhex(message_data.nonce)
     updated_message = await crud.update_message_content(
         db,
         message_id=message_data.message_id,
-        ciphertext=ciphertext_bytes
+        ciphertext=ciphertext_bytes,
+        nonce=nonce_bytes,
     )
     
     msg_out = MessageOut.model_validate(updated_message)

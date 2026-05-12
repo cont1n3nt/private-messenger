@@ -21,6 +21,8 @@ export interface DecryptedMessage {
   text: string
   created_at: string
   isKeySetup: boolean
+  edited: boolean
+  reply_to_message: number
 }
 
 interface ChatContextValue {
@@ -28,7 +30,9 @@ interface ChatContextValue {
   groupKeyReady: boolean
   founderUsername: string | null
   users: User[]
-  sendMessage: (text: string) => Promise<void>
+  sendMessage: (text: string, replyToId?: number) => Promise<void>
+  editMessage: (id: number, text: string) => Promise<void>
+  deleteMessage: (id: number) => Promise<void>
   initError: string | null
 }
 
@@ -131,6 +135,8 @@ function tryDecryptMessage(
             text: payload.text,
             created_at: msg.created_at,
             isKeySetup: false,
+            edited: msg.edited_content ?? false,
+            reply_to_message: msg.reply_to_message ?? -1,
           }
         }
       } catch {
@@ -283,6 +289,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     pollTimerRef.current = setTimeout(startGroupKeyPoll, GROUP_KEY_POLL_MS)
   }
 
+  function addUniqueMessages(
+    prev: DecryptedMessage[],
+    newMsgs: DecryptedMessage[],
+  ): DecryptedMessage[] {
+    const existingIds = new Set(prev.map((m) => m.id))
+    const toAdd = newMsgs.filter((m) => !existingIds.has(m.id))
+    if (toAdd.length === 0) return prev
+    return [...prev, ...toAdd]
+  }
+
   async function fetchMissedMessages() {
     if (!groupKeyRef.current) return
     try {
@@ -291,12 +307,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         ? await msgApi.getMessages()
         : await msgApi.getMessages(undefined, afterId)
       const gk = groupKeyRef.current
+      const decrypted: DecryptedMessage[] = []
       for (const msg of rawMsgs) {
         const d = tryDecryptMessage(msg, gk)
         if (d) {
           lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
-          setMessages((prev) => [...prev, d])
+          decrypted.push(d)
         }
+      }
+      if (decrypted.length > 0) {
+        setMessages((prev) => addUniqueMessages(prev, decrypted))
       }
     } catch (err) {
       console.error('Fetch missed messages failed:', err)
@@ -325,13 +345,37 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     ws.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data)
-        if (data.type !== 'new_message') return
-        const msg: Message = data.data
         const gk = groupKeyRef.current
-        const d = tryDecryptMessage(msg, gk)
-        if (d) {
-          lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
-          setMessages((prev) => [...prev, d])
+        if (!gk) return
+
+        switch (data.type) {
+          case 'new_message': {
+            const msg: Message = data.data
+            const d = tryDecryptMessage(msg, gk)
+            if (d) {
+              lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === d.id)) return prev
+                return [...prev, d]
+              })
+            }
+            break
+          }
+          case 'edit_message': {
+            const msg: Message = data.data
+            const d = tryDecryptMessage(msg, gk)
+            if (d) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === d.id ? { ...m, text: d.text, edited: true } : m)),
+              )
+            }
+            break
+          }
+          case 'delete_message': {
+            const { message_id } = data.data as { message_id: number }
+            setMessages((prev) => prev.filter((m) => m.id !== message_id))
+            break
+          }
         }
       } catch {
       }
@@ -351,16 +395,50 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, replyToId?: number) => {
       if (!groupKeyRef.current) return
       const payload: ChatPayload = { type: 'chat', text }
       const { ciphertext, nonce } = encrypt(
         JSON.stringify(payload),
         groupKeyRef.current,
       )
-      await msgApi.sendMessage(ciphertext, nonce)
+      await msgApi.sendMessage(ciphertext, nonce, replyToId)
     },
     [],
+  )
+
+  const editMessage = useCallback(
+    async (id: number, text: string) => {
+      if (!groupKeyRef.current) return
+      const prevMessages = messages
+      const payload: ChatPayload = { type: 'chat', text }
+      const { ciphertext, nonce } = encrypt(
+        JSON.stringify(payload),
+        groupKeyRef.current,
+      )
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)),
+      )
+      try {
+        await msgApi.editMessage(id, ciphertext, nonce)
+      } catch {
+        setMessages(prevMessages)
+      }
+    },
+    [messages],
+  )
+
+  const deleteMessage = useCallback(
+    async (id: number) => {
+      const prevMessages = messages
+      setMessages((prev) => prev.filter((m) => m.id !== id))
+      try {
+        await msgApi.deleteMessage(id)
+      } catch {
+        setMessages(prevMessages)
+      }
+    },
+    [messages],
   )
 
   return (
@@ -371,6 +449,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         founderUsername,
         users,
         sendMessage,
+        editMessage,
+        deleteMessage,
         initError,
       }}
     >

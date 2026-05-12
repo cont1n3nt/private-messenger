@@ -4,7 +4,7 @@ import ChatScreen from '../components/chat/ChatScreen'
 
 export default function ChatPage() {
   const { user, logout } = useAuth()
-  const { messages, groupKeyReady, founderUsername, users, sendMessage, initError } = useChat()
+  const { messages, groupKeyReady, founderUsername, users, sendMessage, editMessage, deleteMessage, initError } = useChat()
 
   if (!user) return null
 
@@ -17,6 +17,8 @@ export default function ChatPage() {
       user={user}
       users={users}
       onSend={sendMessage}
+      onEdit={editMessage}
+      onDelete={deleteMessage}
       onLogout={logout}
     />
   )
