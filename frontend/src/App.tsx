@@ -10,7 +10,7 @@ const AuthenticatedApp = lazy(() => import('./authenticated/AuthenticatedApp'))
 function LoadingScreen() {
   return (
     <div className="relative h-[100dvh] flex items-center justify-center overflow-hidden">
-      <WallpaperLayer seed={0} density={24} showOrbs />
+      <WallpaperLayer showOrbs />
       <div className="relative z-10 flex flex-col items-center gap-4">
         <motion.div
           className="flex items-center gap-2"

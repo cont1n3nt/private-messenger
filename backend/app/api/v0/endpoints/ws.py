@@ -45,6 +45,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
     try:
         auth_msg = await websocket.receive_json()
+    except WebSocketDisconnect:
+        return
     except Exception:
         await websocket.close(code=4003)
         return

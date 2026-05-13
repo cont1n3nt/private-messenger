@@ -6,7 +6,6 @@
 """
 
 import pytest
-import pytest_asyncio
 
 from app.db.crud import create_user
 

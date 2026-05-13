@@ -53,7 +53,7 @@ const LoginCard = memo(function LoginCard({
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
-            placeholder="e.g. kosmo"
+            placeholder="e.g. cont1n3nt"
             required
             autoFocus
           />

@@ -4,7 +4,6 @@
 РїРµСЂРµРѕРїСЂРµРґРµР»СЏРµС‚ get_db Рё get_session Р·Р°РІРёСЃРёРјРѕСЃС‚Рё.
 """
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
