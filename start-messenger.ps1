@@ -1,6 +1,3 @@
-# Unified launcher for Private Messenger
-# Run this script once to start both backend and frontend
-
 $ErrorActionPreference = "Stop"
 
 Write-Host "=== Private Messenger Launcher ===" -ForegroundColor Cyan
@@ -8,7 +5,6 @@ Write-Host "=== Private Messenger Launcher ===" -ForegroundColor Cyan
 $backendDir = Join-Path $PSScriptRoot "backend"
 $frontendDir = Join-Path $PSScriptRoot "frontend"
 
-# --- Backend Setup ---
 Write-Host "`n[1/3] Setting up backend..." -ForegroundColor Yellow
 
 Set-Location -Path $backendDir
@@ -50,10 +46,9 @@ Write-Host "  Starting backend server on :8000..." -ForegroundColor Green
 $backendVenvActivate = Join-Path $backendDir ".venv\Scripts\Activate.ps1"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$backendDir'; & '$backendVenvActivate'; uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
-# --- Frontend Setup ---
 Write-Host "`n[2/3] Setting up frontend..." -ForegroundColor Yellow
 
-Set-Location -Path (Join-Path $PSScriptRoot "frontend")
+Set-Location -Path $frontendDir
 
 if (-not (Test-Path "node_modules")) {
     Write-Host "  Installing npm dependencies..." -ForegroundColor Gray

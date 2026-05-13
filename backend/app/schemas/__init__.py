@@ -16,7 +16,7 @@ __all__ = [
     "SendMessageRequest",
     "MessageOut",
     "EditMessageRequest",
-    "DeleteMessageRequest"
+    "DeleteMessageRequest",
     "KeysInitRequest",
     "KeysData",
 ]

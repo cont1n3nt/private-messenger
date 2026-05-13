@@ -3,8 +3,6 @@ from sqlalchemy import select, delete
 from app.db.models import Message
 import datetime
 
-# NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
-
 async def create_message(session: AsyncSession, message_data: dict) -> Message:
     """
     Создает новое сообщение в базе данных
@@ -118,6 +116,9 @@ async def get_messages_by_sender(session: AsyncSession, sender_id: int) -> list[
     result = await session.execute(stmt)
     return list(result.scalars().all())
 
+async def get_message_by_id(session: AsyncSession, message_id: int) -> Message | None:
+    return await session.get(Message, message_id)
+
 async def delete_message(session: AsyncSession, message_id: int) -> bool:
     """
     Удаляет сообщение по ID
@@ -138,6 +139,20 @@ async def delete_message(session: AsyncSession, message_id: int) -> bool:
     result = await session.execute(stmt)
     await session.commit()
     
+    return bool(result.rowcount > 0)
+
+async def delete_user_message(
+    session: AsyncSession,
+    *,
+    message_id: int,
+    sender_id: int,
+) -> bool:
+    stmt = delete(Message).where(
+        Message.id == message_id,
+        Message.sender_id == sender_id,
+    )
+    result = await session.execute(stmt)
+    await session.commit()
     return bool(result.rowcount > 0)
 
 async def update_message_content(session: AsyncSession, message_id: int, ciphertext: bytes, nonce: bytes | None = None) -> Message | None:
@@ -162,4 +177,24 @@ async def update_message_content(session: AsyncSession, message_id: int, ciphert
         setattr(message, "edited_content", True)
         await session.commit()
         await session.refresh(message)
+    return message
+
+async def update_user_message_content(
+    session: AsyncSession,
+    *,
+    message_id: int,
+    sender_id: int,
+    ciphertext: bytes,
+    nonce: bytes | None = None,
+) -> Message | None:
+    message = await session.get(Message, message_id)
+    if message is None or message.sender_id != sender_id:
+        return None
+
+    setattr(message, "ciphertext", ciphertext)
+    if nonce is not None:
+        setattr(message, "nonce", nonce)
+    setattr(message, "edited_content", True)
+    await session.commit()
+    await session.refresh(message)
     return message

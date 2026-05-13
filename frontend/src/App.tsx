@@ -1,9 +1,11 @@
+import { Suspense, lazy } from 'react'
 import { motion } from 'framer-motion'
+
 import { AuthProvider, useAuth } from './store/AuthContext'
-import { ChatProvider } from './store/ChatContext'
 import LoginPage from './pages/LoginPage'
-import ChatPage from './pages/ChatPage'
 import WallpaperLayer from './components/wallpaper/WallpaperLayer'
+
+const AuthenticatedApp = lazy(() => import('./authenticated/AuthenticatedApp'))
 
 function LoadingScreen() {
   return (
@@ -40,9 +42,9 @@ function AppInner() {
   }
 
   return (
-    <ChatProvider>
-      <ChatPage />
-    </ChatProvider>
+    <Suspense fallback={<LoadingScreen />}>
+      <AuthenticatedApp />
+    </Suspense>
   )
 }
 

@@ -73,8 +73,8 @@ const ChatScreen = memo(function ChatScreen({
     if (!contextMenu) return
     try {
       await navigator.clipboard.writeText(contextMenu.message.text)
-    } catch {
-      /* clipboard not available */
+    } catch (error) {
+      console.warn('Clipboard is unavailable', error)
     }
   }, [contextMenu])
 

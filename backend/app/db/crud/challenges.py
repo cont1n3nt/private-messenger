@@ -3,8 +3,6 @@ from sqlalchemy import select, delete, update, or_, and_
 from app.db.models import Challenge
 import datetime
 
-# NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
-
 async def create_challenge(session: AsyncSession, challenge_data: dict) -> Challenge:
     challenge = Challenge(**challenge_data)
     session.add(challenge)

@@ -24,47 +24,98 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+async function loadAuthenticatedUser(username: string, expectedUserId?: number): Promise<User> {
+  const users = await keysApi.getKeys()
+  const found = users.find((u) =>
+    expectedUserId !== undefined ? u.id === expectedUserId : u.username === username,
+  )
+
+  if (!found) {
+    throw new Error('Authenticated user was not found in the key registry')
+  }
+
+  return found
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [keyPair, setKeyPair] = useState<KeyPair | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => localStorage.getItem('token') !== null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) {
-      setIsLoading(false)
       return
     }
+    let cancelled = false
+
     authApi
       .getMe()
       .then(async (me) => {
-        const keys = await loadKeyPair(me.username)
-        if (keys) {
-          const users = await keysApi.getKeys()
-          const found = users.find((u) => u.id === me.id) ?? null
-          setUser(found)
-          setKeyPair(keys)
-        } else {
+        const storedKeys = await loadKeyPair(me.username)
+        if (!storedKeys) {
           localStorage.removeItem('token')
+          return
         }
+
+        if (cancelled) return
+        const found = await loadAuthenticatedUser(me.username, me.id)
+        if (cancelled) return
+        setUser(found)
+        setKeyPair(storedKeys)
       })
       .catch(() => {
         localStorage.removeItem('token')
+        setUser(null)
+        setKeyPair(null)
       })
-      .finally(() => setIsLoading(false))
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const login = useCallback(
     async (username: string, importedJson?: ImportedKeys) => {
-      let keys: KeyPair | null = null
-
       if (importedJson) {
-        keys = importKeysFromJson(importedJson)
-        await saveKeyPair(username, keys)
-      } else {
-        keys = await loadKeyPair(username)
+        if (importedJson.username !== username) {
+          throw new Error('Imported key file does not match the entered username')
+        }
+
+        const keys = importKeysFromJson(importedJson)
+        const challenge = await authApi.requestChallenge(username)
+        const signature = signChallenge(challenge, keys.signSecretKey)
+        const { token } = await authApi.verifySignature(
+          username,
+          challenge,
+          signature,
+        )
+
+        localStorage.setItem('token', token)
+
+        try {
+          await keysApi.initKeys(
+            b64Encode(keys.signPublicKey),
+            b64Encode(keys.dhPublicKey),
+          )
+
+          await saveKeyPair(username, keys)
+          const found = await loadAuthenticatedUser(username)
+          setUser(found)
+          setKeyPair(keys)
+          return
+        } catch (err) {
+          localStorage.removeItem('token')
+          throw err
+        }
       }
 
+      const keys = await loadKeyPair(username)
       if (!keys) {
         throw new Error(
           'No keys found. You must import keys from backend/keys/<username>.json on first login.',
@@ -87,8 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           b64Encode(keys.dhPublicKey),
         )
 
-        const users = await keysApi.getKeys()
-        const found = users.find((u) => u.username === username) ?? null
+        const found = await loadAuthenticatedUser(username)
         setUser(found)
         setKeyPair(keys)
       } catch (err) {
@@ -102,14 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await authApi.logout()
-    } catch {
-      // ignore
+    } catch (error) {
+      console.warn('Logout request failed', error)
     }
     localStorage.removeItem('token')
     if (user) localStorage.removeItem(`groupKey_${user.id}`)
     setUser(null)
     setKeyPair(null)
-  }, [])
+  }, [user])
 
   const resetKeys = useCallback(async (username: string) => {
     await deleteKeyPair(username)

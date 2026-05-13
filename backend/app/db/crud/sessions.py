@@ -3,8 +3,6 @@ from sqlalchemy import delete
 from app.db.models import Session
 import datetime
 
-# NOTE: ALL DOCSTRING WERE WRITTEN USING ARTIFICIAL INTELLIGENCE, THERE CAN BE SOME MINOR MISTAKES
-
 async def create_session(session: AsyncSession, session_data: dict) -> Session:
     """
     Создает новую сессию пользователя

@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.exceptions import InvalidSignature
 
 from app.api.deps import get_db, get_current_user
+from app.api.security import extract_bearer_token
 from app.db.models import User
 from app.db import crud
 from app.schemas import (
@@ -115,16 +116,14 @@ async def verify_signature(
     summary="Logout and invalidate the current access token",
 )
 async def logout(
-    authorization: str = Header(...),
+    token: str = Depends(extract_bearer_token),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> APIResponse[None]:
-    
-    token: str = authorization.removeprefix("Bearer ").strip()
     await crud.delete_session(db, token)
     await db.commit()
     
-    return APIResponse.ok(None)
+    return APIResponse.ok_without_data()
 
 @router.get(
     "/me",

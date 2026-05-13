@@ -77,8 +77,8 @@ const MessageInput = memo(function MessageInput({
         }
         setText('')
         onClearInputMode()
-      } catch {
-        /* keep text for retry */
+      } catch (error) {
+        console.error('Failed to submit message', error)
       } finally {
         setSending(false)
       }

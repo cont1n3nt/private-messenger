@@ -9,29 +9,29 @@
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=sqlalchemy&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer_Motion-12-0055FF?logo=framer&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
 ![Ed25519](https://img.shields.io/badge/Ed25519-Authentication-8A2BE2)
 ![X25519](https://img.shields.io/badge/X25519-ECDH-8A2BE2)
 ![XChaCha20--Poly1305](https://img.shields.io/badge/XChaCha20--Poly1305-AEAD-8A2BE2)
 ![HKDF](https://img.shields.io/badge/HKDF--SHA256-Key_Derivation-8A2BE2)
 
----
+Real-time group chat with end-to-end encryption. Messages are encrypted in the browser before being sent to the backend, and the backend stores ciphertext instead of plaintext.
 
-Real-time group chat with **end-to-end encryption**. Messages are encrypted in the browser before leaving the client — the server never sees plaintext.
+## Status
+
+This project is an actively maintained portfolio MVP.
+It is suitable for demos, learning, code review, and further development, but it is not positioned as a production-hardened messenger yet.
 
 ## Features
 
-- **Ed25519 challenge-response** authentication — no passwords
-- **X25519 ECDH + HKDF** for pairwise shared secrets
-- **XChaCha20-Poly1305 AEAD** encryption for every message
-- **Group key** distribution — founder generates a random key, distributes it encrypted via pairwise ECDH
-- **WebSocket** real-time messaging with automatic reconnection & exponential backoff
-- **Markdown** rendering in messages (GFM)
-- **Message expiry** (48-hour TTL), edit & delete
-- **Rate limiting** on auth & send endpoints
-- **UI** minimal dark UI with animated interactions
-- **SQLite** persistence with async SQLAlchemy
+- Ed25519 challenge-response authentication
+- X25519 ECDH plus HKDF for pairwise shared secrets
+- XChaCha20-Poly1305 encryption for messages
+- Founder-generated group key distributed through pairwise encrypted messages
+- Real-time updates over WebSocket with reconnect logic
+- Markdown message rendering
+- Message editing, deleting, and expiry
+- Async FastAPI backend with SQLite and SQLAlchemy
 
 ## Architecture
 
@@ -43,11 +43,10 @@ Real-time group chat with **end-to-end encryption**. Messages are encrypted in t
 |---|---|
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2.0, aiosqlite |
 | Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 |
-| Cryptography | @noble/curves (Ed25519, X25519), @noble/ciphers (XChaCha20-Poly1305) |
-| Real-time | WebSocket (FastAPI native) |
+| Cryptography | `@noble/curves`, `@noble/ciphers` |
+| Real-time | FastAPI WebSocket |
 | Animations | Framer Motion 12 |
 | Testing | pytest, pytest-asyncio, httpx |
-| Container | Docker |
 
 ## Cryptography
 
@@ -56,7 +55,7 @@ Real-time group chat with **end-to-end encryption**. Messages are encrypted in t
 | Authentication | Ed25519 challenge-response |
 | Key exchange | X25519 ECDH + HKDF-SHA256 |
 | Message encryption | XChaCha20-Poly1305 AEAD |
-| Group key | Random 32-byte key, distributed via pairwise ECDH |
+| Group key | Random 32-byte key distributed via pairwise ECDH |
 | Client key storage | IndexedDB |
 
 ## Getting Started
@@ -71,10 +70,11 @@ Real-time group chat with **end-to-end encryption**. Messages are encrypted in t
 
 ```bash
 cd backend
+copy .env.example .env
 python -m venv .venv
-.venv\Scripts\activate    # Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
-python seed.py            # create demo users
+python seed.py
 uvicorn app.main:app --reload
 ```
 
@@ -86,56 +86,56 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` and log in with one of the demo usernames (`kosmo`, `ayala13rus`, `treizd`).
+Open `http://localhost:5173` and log in with one of the demo usernames: `kosmo`, `ayala13rus`, or `treizd`.
 
-### Run tests
+### Run Tests
 
 ```bash
 cd backend
-pytest        # discovers api/test/ and db/tests/
+pytest
 ```
 
 ## API Overview
 
-All endpoints live under `/api/v0`:
+All endpoints live under `/api/v0`.
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/auth/challenge` | Get a challenge |
-| POST | `/auth/verify` | Verify Ed25519 signature |
-| GET | `/auth/me` | Current user info |
+| POST | `/auth/challenge` | Request a challenge |
+| POST | `/auth/verify` | Verify an Ed25519 signature |
+| GET | `/auth/me` | Get current user info |
 | POST | `/keys/init` | Upload public keys |
-| GET | `/keys` | All public keys |
-| GET | `/messages` | Paginated messages |
-| POST | `/messages` | Send encrypted message |
-| POST | `/messages/edit` | Edit own message |
-| POST | `/messages/delete` | Delete own message |
+| GET | `/keys` | Get all public keys |
+| GET | `/messages` | Get paginated messages |
+| POST | `/messages` | Send an encrypted message |
+| POST | `/messages/edit` | Edit your own message |
+| POST | `/messages/delete` | Delete your own message |
 | WS | `/ws` | Real-time WebSocket |
 
 ## Project Structure
 
-```
+```text
 backend/
 ├── app/
-│   ├── main.py              # FastAPI entry point
-│   ├── api/v0/              # REST + WS endpoints
-│   ├── db/                  # SQLAlchemy models + CRUD
-│   └── schemas/             # Pydantic schemas
+│   ├── main.py
+│   ├── api/v0/
+│   ├── db/
+│   └── schemas/
 ├── requirements.txt
-└── seed.py                  # Demo data generator
+└── seed.py
 
 frontend/
 ├── src/
-│   ├── api/                 # Axios API client
-│   ├── crypto/              # Auth, ECDH, cipher, key storage
-│   ├── store/               # React Context (Auth + Chat)
-│   ├── pages/               # Login, Chat
-│   ├── components/          # UI components
-│   ├── hooks/               # Custom hooks
-│   └── theme/               # Colors, glass, typography
+│   ├── api/
+│   ├── components/
+│   ├── crypto/
+│   ├── hooks/
+│   ├── pages/
+│   ├── store/
+│   └── theme/
 ├── index.html
-├── vite.config.ts
-└── package.json
+├── package.json
+└── vite.config.ts
 ```
 
 ## License

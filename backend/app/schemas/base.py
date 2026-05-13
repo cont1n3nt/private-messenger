@@ -3,13 +3,13 @@ from typing import TypeVar, Generic
 
 T = TypeVar("T")
 
+
 class ErrorDetail(BaseModel):
     code: str
     message: str
-    
+
 
 class APIResponse(BaseModel, Generic[T]):
-    # Универсальная модель для всех ответов API
     success: bool
     data: T | None = None
     error: ErrorDetail | None = None
@@ -25,3 +25,7 @@ class APIResponse(BaseModel, Generic[T]):
             data=None,
             error=ErrorDetail(code=code, message=message),
         )
+
+    @classmethod
+    def ok_without_data(cls) -> "APIResponse[None]":
+        return cls(success=True, data=None, error=None)

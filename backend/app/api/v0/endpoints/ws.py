@@ -20,7 +20,11 @@ async def _authenticate_ws(token: str) -> int | None:
         if db_session is None:
             return None
 
-        if db_session.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        expires_at = db_session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
             await crud.delete_session(db, token)
             await db.commit()
             return None

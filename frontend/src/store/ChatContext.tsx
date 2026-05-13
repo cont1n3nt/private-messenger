@@ -39,6 +39,7 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue | null>(null)
 
 const GROUP_KEY_STORAGE_PREFIX = 'groupKey_'
+const GROUP_KEY_POLL_MS = 3000
 
 function groupKeyStorageKey(userId: number): string {
   return `${GROUP_KEY_STORAGE_PREFIX}${userId}`
@@ -123,30 +124,60 @@ function tryDecryptMessage(
   msg: Message,
   groupKey: Uint8Array | null,
 ): DecryptedMessage | null {
-  if (groupKey) {
-    const plaintext = decrypt(msg.ciphertext, msg.nonce, groupKey)
-    if (plaintext) {
-      try {
-        const payload: MessagePayload = JSON.parse(plaintext)
-        if (payload.type === 'chat') {
-          return {
-            id: msg.id,
-            sender_id: msg.sender_id,
-            text: payload.text,
-            created_at: msg.created_at,
-            isKeySetup: false,
-            edited: msg.edited_content ?? false,
-            reply_to_message: msg.reply_to_message ?? -1,
-          }
-        }
-      } catch {
-      }
-    }
+  if (!groupKey) {
+    return null
   }
-  return null
+
+  const plaintext = decrypt(msg.ciphertext, msg.nonce, groupKey)
+  if (!plaintext) {
+    return null
+  }
+
+  try {
+    const payload: MessagePayload = JSON.parse(plaintext)
+    if (payload.type !== 'chat') {
+      return null
+    }
+
+    return {
+      id: msg.id,
+      sender_id: msg.sender_id,
+      text: payload.text,
+      created_at: msg.created_at,
+      isKeySetup: false,
+      edited: msg.edited_content ?? false,
+      reply_to_message: msg.reply_to_message ?? -1,
+    }
+  } catch {
+    return null
+  }
 }
 
-const GROUP_KEY_POLL_MS = 3000
+function decryptMessages(
+  messages: Message[],
+  groupKey: Uint8Array,
+): DecryptedMessage[] {
+  const decrypted: DecryptedMessage[] = []
+
+  for (const message of messages) {
+    const nextMessage = tryDecryptMessage(message, groupKey)
+    if (nextMessage) {
+      decrypted.push(nextMessage)
+    }
+  }
+
+  return decrypted
+}
+
+function mergeUniqueMessages(
+  currentMessages: DecryptedMessage[],
+  incomingMessages: DecryptedMessage[],
+): DecryptedMessage[] {
+  const existingIds = new Set(currentMessages.map((message) => message.id))
+  const toAdd = incomingMessages.filter((message) => !existingIds.has(message.id))
+  if (toAdd.length === 0) return currentMessages
+  return [...currentMessages, ...toAdd]
+}
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, keyPair, isAuthenticated } = useAuth()
@@ -168,164 +199,65 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     groupKeyRef.current = groupKey
   }, [groupKey])
 
-  useEffect(() => {
-    if (!isAuthenticated || !user || !keyPair) return
+  const distributeKeyToNewUsers = useCallback(
+    async (gk: Uint8Array) => {
+      if (!user || !keyPair) return
 
-    const myUser = user
-    const myKeyPair = keyPair
-    let cancelled = false
-
-    async function init() {
       try {
         const allUsers = await keysApi.getKeys()
-        if (cancelled) return
+        const secrets = await computePairwiseSecrets(user.id, keyPair.dhSecretKey, allUsers)
+        const distributed = distributedToRef.current
+
+        for (const [userId, secret] of secrets) {
+          if (distributed.has(userId)) continue
+          const payload: MessagePayload = {
+            type: 'key_setup',
+            key: b64Encode(gk),
+          }
+          const { ciphertext, nonce } = encrypt(JSON.stringify(payload), secret)
+          await msgApi.sendMessage(ciphertext, nonce)
+          distributed.add(userId)
+        }
+
         setUsers(allUsers)
-
-        const founder = findFounder(allUsers)
-        setFounderUsername(founder?.username ?? null)
-
-        const gk = await establishGroupKey(myUser.id, myKeyPair)
-        if (cancelled) return
-
-        if (gk) {
-          setGroupKey(gk)
-
-          if (isUserFounder(myUser.id, allUsers)) {
-            await distributeKeyToNewUsers(gk)
-            startFounderDistribute()
-          }
-
-          const rawMsgs = await msgApi.getMessages()
-          if (cancelled) return
-          const decrypted: DecryptedMessage[] = []
-          for (const msg of rawMsgs) {
-            const d = tryDecryptMessage(msg, gk)
-            if (d) decrypted.push(d)
-          }
-          if (decrypted.length > 0) {
-            lastMsgIdRef.current = decrypted[decrypted.length - 1].id
-          }
-          setMessages(decrypted)
-          connectWs()
-        } else {
-          startGroupKeyPoll()
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Chat init failed:', err)
-          setInitError('Failed to initialize chat. Please try reloading.')
-        }
+      } catch (error) {
+        console.error('Distribute key failed:', error)
       }
-    }
+    },
+    [keyPair, user],
+  )
 
-    init()
-    return () => {
-      cancelled = true
-      if (wsRef.current) {
-        wsRef.current.onclose = null
-        wsRef.current.close()
-      }
-      if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
-      if (wsReconnectTimerRef.current) clearTimeout(wsReconnectTimerRef.current)
-      if (founderDistributeTimerRef.current) clearTimeout(founderDistributeTimerRef.current)
-    }
-  }, [isAuthenticated, user?.id, keyPair])
+  const fetchMissedMessages = useCallback(async () => {
+    const gk = groupKeyRef.current
+    if (!gk) return
 
-  async function distributeKeyToNewUsers(gk: Uint8Array) {
-    if (!user || !keyPair) return
-    try {
-      const allUsers = await keysApi.getKeys()
-      const secrets = await computePairwiseSecrets(user.id, keyPair.dhSecretKey, allUsers)
-      const distributed = distributedToRef.current
-
-      for (const [userId, secret] of secrets) {
-        if (distributed.has(userId)) continue
-        const payload: MessagePayload = {
-          type: 'key_setup',
-          key: b64Encode(gk),
-        }
-        const { ciphertext, nonce } = encrypt(JSON.stringify(payload), secret)
-        await msgApi.sendMessage(ciphertext, nonce)
-        distributed.add(userId)
-      }
-      setUsers(allUsers)
-    } catch (err) {
-      console.error('Distribute key failed:', err)
-    }
-  }
-
-  function startFounderDistribute() {
-    founderDistributeTimerRef.current = setTimeout(async () => {
-      if (!groupKeyRef.current) return
-      await distributeKeyToNewUsers(groupKeyRef.current)
-      startFounderDistribute()
-    }, GROUP_KEY_POLL_MS)
-  }
-
-  async function startGroupKeyPoll() {
-    if (!user || !keyPair) return
-
-    try {
-      const gk = await establishGroupKey(user.id, keyPair)
-      if (gk) {
-        setGroupKey(gk)
-        const rawMsgs = await msgApi.getMessages()
-        const decrypted: DecryptedMessage[] = []
-        for (const msg of rawMsgs) {
-          const d = tryDecryptMessage(msg, gk)
-          if (d) decrypted.push(d)
-        }
-        if (decrypted.length > 0) {
-          lastMsgIdRef.current = decrypted[decrypted.length - 1].id
-        }
-        setMessages(decrypted)
-        connectWs()
-        return
-      }
-    } catch (err) {
-      console.error('Group key poll failed:', err)
-    }
-
-    pollTimerRef.current = setTimeout(startGroupKeyPoll, GROUP_KEY_POLL_MS)
-  }
-
-  function addUniqueMessages(
-    prev: DecryptedMessage[],
-    newMsgs: DecryptedMessage[],
-  ): DecryptedMessage[] {
-    const existingIds = new Set(prev.map((m) => m.id))
-    const toAdd = newMsgs.filter((m) => !existingIds.has(m.id))
-    if (toAdd.length === 0) return prev
-    return [...prev, ...toAdd]
-  }
-
-  async function fetchMissedMessages() {
-    if (!groupKeyRef.current) return
     try {
       const afterId = lastMsgIdRef.current
-      const rawMsgs = afterId === 0
+      const rawMessages = afterId === 0
         ? await msgApi.getMessages()
         : await msgApi.getMessages(undefined, afterId)
-      const gk = groupKeyRef.current
-      const decrypted: DecryptedMessage[] = []
-      for (const msg of rawMsgs) {
-        const d = tryDecryptMessage(msg, gk)
-        if (d) {
-          lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
-          decrypted.push(d)
-        }
-      }
-      if (decrypted.length > 0) {
-        setMessages((prev) => addUniqueMessages(prev, decrypted))
-      }
-    } catch (err) {
-      console.error('Fetch missed messages failed:', err)
-    }
-  }
+      const decrypted = decryptMessages(rawMessages, gk)
 
-  function connectWs() {
+      for (const message of decrypted) {
+        lastMsgIdRef.current = Math.max(lastMsgIdRef.current, message.id)
+      }
+
+      if (decrypted.length > 0) {
+        setMessages((prev) => mergeUniqueMessages(prev, decrypted))
+      }
+    } catch (error) {
+      console.error('Fetch missed messages failed:', error)
+    }
+  }, [])
+
+  const connectWs = useCallback(function openConnection() {
     const token = localStorage.getItem('token')
     if (!token) return
+
+    if (wsReconnectTimerRef.current) {
+      clearTimeout(wsReconnectTimerRef.current)
+      wsReconnectTimerRef.current = null
+    }
 
     if (wsRef.current) {
       wsRef.current.onclose = null
@@ -351,48 +283,177 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         switch (data.type) {
           case 'new_message': {
             const msg: Message = data.data
-            const d = tryDecryptMessage(msg, gk)
-            if (d) {
-              lastMsgIdRef.current = Math.max(lastMsgIdRef.current, d.id)
+            const decrypted = tryDecryptMessage(msg, gk)
+            if (decrypted) {
+              lastMsgIdRef.current = Math.max(lastMsgIdRef.current, decrypted.id)
               setMessages((prev) => {
-                if (prev.some((m) => m.id === d.id)) return prev
-                return [...prev, d]
+                if (prev.some((message) => message.id === decrypted.id)) return prev
+                return [...prev, decrypted]
               })
             }
             break
           }
           case 'edit_message': {
             const msg: Message = data.data
-            const d = tryDecryptMessage(msg, gk)
-            if (d) {
+            const decrypted = tryDecryptMessage(msg, gk)
+            if (decrypted) {
               setMessages((prev) =>
-                prev.map((m) => (m.id === d.id ? { ...m, text: d.text, edited: true } : m)),
+                prev.map((message) =>
+                  message.id === decrypted.id
+                    ? { ...message, text: decrypted.text, edited: true }
+                    : message,
+                ),
               )
             }
             break
           }
           case 'delete_message': {
             const { message_id } = data.data as { message_id: number }
-            setMessages((prev) => prev.filter((m) => m.id !== message_id))
+            setMessages((prev) => prev.filter((message) => message.id !== message_id))
             break
           }
         }
       } catch {
+        console.warn('Ignored invalid websocket payload')
       }
     }
 
     ws.onclose = (ev) => {
       wsRef.current = null
       if (ev.code === 4003) return
+
       if (localStorage.getItem('token')) {
         const delay = reconnectDelayRef.current
         reconnectDelayRef.current = Math.min(delay * 2, 30000)
         wsReconnectTimerRef.current = setTimeout(() => {
-          fetchMissedMessages().then(() => connectWs()).catch(() => {})
+          fetchMissedMessages()
+            .catch((error) => {
+              console.warn('Failed to fetch missed messages before reconnect', error)
+            })
+            .finally(() => {
+              openConnection()
+            })
         }, delay)
       }
     }
-  }
+  }, [fetchMissedMessages])
+
+  const startFounderDistribute = useCallback(() => {
+    if (founderDistributeTimerRef.current) {
+      clearTimeout(founderDistributeTimerRef.current)
+    }
+
+    const tick = async () => {
+      const currentGroupKey = groupKeyRef.current
+      if (!currentGroupKey) return
+
+      await distributeKeyToNewUsers(currentGroupKey)
+      founderDistributeTimerRef.current = setTimeout(tick, GROUP_KEY_POLL_MS)
+    }
+
+    founderDistributeTimerRef.current = setTimeout(tick, GROUP_KEY_POLL_MS)
+  }, [distributeKeyToNewUsers])
+
+  const startGroupKeyPoll = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current)
+    }
+
+    const poll = async () => {
+      if (!user || !keyPair) return
+
+      try {
+        const gk = await establishGroupKey(user.id, keyPair)
+        if (gk) {
+          setGroupKey(gk)
+          const rawMessages = await msgApi.getMessages()
+          const decrypted = decryptMessages(rawMessages, gk)
+          if (decrypted.length > 0) {
+            lastMsgIdRef.current = decrypted[decrypted.length - 1].id
+          }
+          setMessages(decrypted)
+          connectWs()
+          return
+        }
+      } catch (error) {
+        console.error('Group key poll failed:', error)
+      }
+
+      pollTimerRef.current = setTimeout(poll, GROUP_KEY_POLL_MS)
+    }
+
+    void poll()
+  }, [connectWs, keyPair, user])
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || !keyPair) return
+
+    const currentUser = user
+    const currentKeyPair = keyPair
+    let cancelled = false
+
+    async function init() {
+      try {
+        setInitError(null)
+        const allUsers = await keysApi.getKeys()
+        if (cancelled) return
+        setUsers(allUsers)
+
+        const founder = findFounder(allUsers)
+        setFounderUsername(founder?.username ?? null)
+
+        const gk = await establishGroupKey(currentUser.id, currentKeyPair)
+        if (cancelled) return
+
+        if (gk) {
+          setGroupKey(gk)
+
+          if (isUserFounder(currentUser.id, allUsers)) {
+            await distributeKeyToNewUsers(gk)
+            if (cancelled) return
+            startFounderDistribute()
+          }
+
+          const rawMessages = await msgApi.getMessages()
+          if (cancelled) return
+          const decrypted = decryptMessages(rawMessages, gk)
+          if (decrypted.length > 0) {
+            lastMsgIdRef.current = decrypted[decrypted.length - 1].id
+          }
+          setMessages(decrypted)
+          connectWs()
+        } else {
+          startGroupKeyPoll()
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Chat init failed:', error)
+          setInitError('Failed to initialize chat. Please try reloading.')
+        }
+      }
+    }
+
+    void init()
+
+    return () => {
+      cancelled = true
+      if (wsRef.current) {
+        wsRef.current.onclose = null
+        wsRef.current.close()
+      }
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
+      if (wsReconnectTimerRef.current) clearTimeout(wsReconnectTimerRef.current)
+      if (founderDistributeTimerRef.current) clearTimeout(founderDistributeTimerRef.current)
+    }
+  }, [
+    connectWs,
+    distributeKeyToNewUsers,
+    isAuthenticated,
+    keyPair,
+    startFounderDistribute,
+    startGroupKeyPoll,
+    user,
+  ])
 
   const sendMessage = useCallback(
     async (text: string, replyToId?: number) => {
@@ -410,35 +471,41 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const editMessage = useCallback(
     async (id: number, text: string) => {
       if (!groupKeyRef.current) return
-      const prevMessages = messages
+      let previousMessages: DecryptedMessage[] = []
       const payload: ChatPayload = { type: 'chat', text }
       const { ciphertext, nonce } = encrypt(
         JSON.stringify(payload),
         groupKeyRef.current,
       )
-      setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)),
-      )
+      setMessages((prev) => {
+        previousMessages = prev
+        return prev.map((message) => (
+          message.id === id ? { ...message, text, edited: true } : message
+        ))
+      })
       try {
         await msgApi.editMessage(id, ciphertext, nonce)
       } catch {
-        setMessages(prevMessages)
+        setMessages(previousMessages)
       }
     },
-    [messages],
+    [],
   )
 
   const deleteMessage = useCallback(
     async (id: number) => {
-      const prevMessages = messages
-      setMessages((prev) => prev.filter((m) => m.id !== id))
+      let previousMessages: DecryptedMessage[] = []
+      setMessages((prev) => {
+        previousMessages = prev
+        return prev.filter((message) => message.id !== id)
+      })
       try {
         await msgApi.deleteMessage(id)
       } catch {
-        setMessages(prevMessages)
+        setMessages(previousMessages)
       }
     },
-    [messages],
+    [],
   )
 
   return (

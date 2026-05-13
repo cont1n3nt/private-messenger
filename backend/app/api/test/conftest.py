@@ -1,7 +1,7 @@
 """
-Общий conftest для API-тестов.
-Поднимает FastAPI приложение с in-memory SQLite,
-переопределяет get_db и get_session зависимости.
+РћР±С‰РёР№ conftest РґР»СЏ API-С‚РµСЃС‚РѕРІ.
+РџРѕРґРЅРёРјР°РµС‚ FastAPI РїСЂРёР»РѕР¶РµРЅРёРµ СЃ in-memory SQLite,
+РїРµСЂРµРѕРїСЂРµРґРµР»СЏРµС‚ get_db Рё get_session Р·Р°РІРёСЃРёРјРѕСЃС‚Рё.
 """
 
 import pytest
@@ -11,15 +11,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.db import models
-from app.db.session import get_session          # генератор, используемый в get_db
-from app.main import app                        # FastAPI instance
+from app.db.session import get_session
+from app.main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-
-# ---------------------------------------------------------------------------
-# Engine / Session fixture
-# ---------------------------------------------------------------------------
 
 @pytest_asyncio.fixture(scope="function")
 async def engine():
@@ -39,13 +35,9 @@ async def db_session(engine):
         yield session
 
 
-# ---------------------------------------------------------------------------
-# HTTP client с подменой БД
-# ---------------------------------------------------------------------------
-
 @pytest_asyncio.fixture(scope="function")
 async def client(engine):
-    """AsyncClient с переопределённой зависимостью get_session → тестовая БД."""
+    """AsyncClient СЃ РїРµСЂРµРѕРїСЂРµРґРµР»С‘РЅРЅРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚СЊСЋ get_session в†’ С‚РµСЃС‚РѕРІР°СЏ Р‘Р”."""
     factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async def override_get_session():
@@ -63,13 +55,9 @@ async def client(engine):
     app.dependency_overrides.clear()
 
 
-# ---------------------------------------------------------------------------
-# Вспомогательные фикстуры — пользователь + сессия
-# ---------------------------------------------------------------------------
-
 @pytest_asyncio.fixture
 async def registered_user(db_session):
-    """Создаёт пользователя без публичных ключей."""
+    """РЎРѕР·РґР°С‘С‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ Р±РµР· РїСѓР±Р»РёС‡РЅС‹С… РєР»СЋС‡РµР№."""
     from app.db.crud import create_user
 
     user = await create_user(db_session, {
@@ -82,7 +70,7 @@ async def registered_user(db_session):
 
 @pytest_asyncio.fixture
 async def auth_token(db_session, registered_user):
-    """Создаёт валидную сессию и возвращает токен."""
+    """РЎРѕР·РґР°С‘С‚ РІР°Р»РёРґРЅСѓСЋ СЃРµСЃСЃРёСЋ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ С‚РѕРєРµРЅ."""
     import secrets
     from datetime import datetime, timedelta, timezone
     from app.db.crud import create_session

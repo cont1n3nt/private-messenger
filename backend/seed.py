@@ -12,7 +12,7 @@ from app.db.init_db import init_db
 from app.db import crud
 
 
-USERNAMES: list[str] = ["alice", "daniel", "john"]
+USERNAMES: list[str] = ["kosmo", "ayala13rus", "treizd"]
 BASE_DIR = Path(__file__).resolve().parent
 KEYS_DIR: Path = BASE_DIR / "keys"
 

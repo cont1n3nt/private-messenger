@@ -1,9 +1,8 @@
-import base64
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user
+from app.api.security import decode_base64_field
 from app.db.models import User
 from app.db import crud
 from app.schemas import APIResponse, KeysInitRequest, KeysData, UserPublic
@@ -21,14 +20,8 @@ async def keys_init(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> APIResponse[KeysData]:
-    try:
-        sign_bytes = base64.b64decode(body.sign_public_key)
-        dh_bytes = base64.b64decode(body.dh_public_key)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid base64 encoding for keys",
-        )
+    sign_bytes = decode_base64_field(body.sign_public_key, field_name="sign_public_key")
+    dh_bytes = decode_base64_field(body.dh_public_key, field_name="dh_public_key")
     
     if len(sign_bytes) != 32 or len(dh_bytes) != 32:
         raise HTTPException(
