@@ -98,7 +98,7 @@ Private Messenger — первый стабильный публичный ре�
 ### База данных
 - **SQLite** через aiosqlite (async), SQLAlchemy 2.0 ORM
 - Фоновая задача `_cleanup_expired()` (lifespan): удаление expired challenges, sessions, messages
-- `seed.py` — создание демо-пользователей (kosmo, ayala13rus, treizd) с генерацией Ed25519 + X25519 ключей
+- `seed.py` — создание демо-пользователей (cont1n3nt, ayala13rus, treizd) с генерацией Ed25519 + X25519 ключей
 
 ### Тестирование
 - **API тесты** (pytest + httpx.AsyncClient, in-memory SQLite):

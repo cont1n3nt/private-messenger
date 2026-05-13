@@ -5,7 +5,7 @@ pydantic>=2.0
 pydantic-settings>=2.14.0
 cryptography==47.0.0
 slowapi
-uvicorn
+uvicorn[standard]
 httpx
 pytest
 pytest-asyncio

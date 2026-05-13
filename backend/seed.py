@@ -12,7 +12,7 @@ from app.db.init_db import init_db
 from app.db import crud
 
 
-USERNAMES: list[str] = ["kosmo", "ayala13rus", "treizd"]
+USERNAMES: list[str] = ["cont1n3nt", "ayala13rus", "treizd"]
 BASE_DIR = Path(__file__).resolve().parent
 KEYS_DIR: Path = BASE_DIR / "keys"
 
@@ -64,7 +64,7 @@ async def seed_user(username: str) -> None:
 
         keys = generate_keypairs()
 
-        key_path = save_private_keys(username, keys)
+        save_private_keys(username, keys)
 
         await crud.create_user(session, {
             "username": username,
@@ -79,7 +79,6 @@ async def main() -> None:
 
     for username in USERNAMES:
         await seed_user(username)
-    print(f"'{KEYS_DIR}/'")
 
 
 if __name__ == "__main__":

@@ -60,6 +60,7 @@ pnpm-debug.log*
 # =========================
 *.db
 *.sqlite
+backend/data/
 
 # =========================
 # Keys / Secrets

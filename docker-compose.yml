@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: "sqlite+aiosqlite:///data/private_messenger.db"
+      TEST_DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      API_PREFIX: "/api/v0"
+      PROJECT_NAME: "Private Messenger"
+      PROJECT_VERSION: "0.0.0"
+      PROJECT_DESCRIPTION: "End-to-end encrypted portfolio messenger."
+      ALLOWED_ORIGINS: '["http://localhost:8080","http://127.0.0.1:8080"]'
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/keys:/app/keys
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"

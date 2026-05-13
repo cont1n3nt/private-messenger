@@ -3,8 +3,6 @@ import NoiseTexture from './NoiseTexture'
 import FloatingOrb from './FloatingOrb'
 
 interface WallpaperLayerProps {
-  seed?: number
-  density?: number
   showOrbs?: boolean
 }
 

@@ -1,6 +1,7 @@
 # Private Messenger
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![MIT License](https://img.shields.io/badge/License-MIT-3776AB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
@@ -14,6 +15,10 @@
 ![X25519](https://img.shields.io/badge/X25519-ECDH-8A2BE2)
 ![XChaCha20--Poly1305](https://img.shields.io/badge/XChaCha20--Poly1305-AEAD-8A2BE2)
 ![HKDF](https://img.shields.io/badge/HKDF--SHA256-Key_Derivation-8A2BE2)
+
+## Preview
+
+![Chat Preview](assets/chat.png)
 
 Real-time group chat with end-to-end encryption. Messages are encrypted in the browser before being sent to the backend, and the backend stores ciphertext instead of plaintext.
 
@@ -45,6 +50,7 @@ It is suitable for demos, learning, code review, and further development, but it
 | Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 |
 | Cryptography | `@noble/curves`, `@noble/ciphers` |
 | Real-time | FastAPI WebSocket |
+| Runtime | Docker Compose, nginx |
 | Animations | Framer Motion 12 |
 | Testing | pytest, pytest-asyncio, httpx |
 
@@ -62,38 +68,62 @@ It is suitable for demos, learning, code review, and further development, but it
 
 ### Prerequisites
 
-- Python 3.12+
-- Node.js 20+
-- npm
+- Docker Desktop with Docker Compose
 
-### Backend
+### Run With Docker
 
 ```bash
-cd backend
-copy .env.example .env
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python seed.py
-uvicorn app.main:app --reload
+docker compose up --build
 ```
 
-### Frontend
+Open `http://localhost:8080` and log in with one of the demo usernames: `cont1n3nt`, `ayala13rus`, or `treizd`.
+
+The backend initializes the SQLite database and demo users on startup. Local runtime data is stored outside the containers:
+
+- Database: `backend/data/private_messenger.db`
+- Demo key exports: `backend/keys/<username>.json`
+
+### Stop Containers
 
 ```bash
-cd frontend
-npm install
-npm run dev
+docker compose down
 ```
 
-Open `http://localhost:5173` and log in with one of the demo usernames: `kosmo`, `ayala13rus`, or `treizd`.
+### Reset Local Demo Data
 
-### Run Tests
+PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force backend\data, backend\keys -ErrorAction SilentlyContinue
+docker compose up --build
+```
+
+### Development Checks
+
+These optional checks are for local development environments with Python 3.12+, Node.js 20+, and installed dependencies.
+
+Backend tests:
 
 ```bash
 cd backend
 pytest
 ```
+
+Frontend checks:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+## CI
+
+GitHub Actions runs the project checks automatically on pull requests and pushes to `main`:
+
+- Backend tests with Python 3.12 and `pytest`
+- Frontend clean install, lint, and production build with Node.js 22
+- Docker Compose config validation and image build
 
 ## API Overview
 
@@ -116,26 +146,30 @@ All endpoints live under `/api/v0`.
 
 ```text
 backend/
-├── app/
-│   ├── main.py
-│   ├── api/v0/
-│   ├── db/
-│   └── schemas/
-├── requirements.txt
-└── seed.py
+|-- app/
+|   |-- main.py
+|   |-- api/v0/
+|   |-- db/
+|   `-- schemas/
+|-- Dockerfile
+|-- docker-entrypoint.sh
+|-- requirements.txt
+`-- seed.py
 
 frontend/
-├── src/
-│   ├── api/
-│   ├── components/
-│   ├── crypto/
-│   ├── hooks/
-│   ├── pages/
-│   ├── store/
-│   └── theme/
-├── index.html
-├── package.json
-└── vite.config.ts
+|-- src/
+|   |-- api/
+|   |-- components/
+|   |-- crypto/
+|   |-- hooks/
+|   |-- pages/
+|   |-- store/
+|   `-- theme/
+|-- Dockerfile
+|-- nginx.conf
+|-- index.html
+|-- package.json
+`-- vite.config.ts
 ```
 
 ## License

@@ -51,7 +51,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative h-[100dvh] flex items-center justify-center overflow-hidden">
-      <WallpaperLayer seed={99} density={30} showOrbs />
+      <WallpaperLayer showOrbs />
 
       <div className="relative z-10 flex items-center justify-center w-full">
         <LoginCard
