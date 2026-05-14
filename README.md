@@ -70,6 +70,15 @@ It is suitable for demos, learning, code review, and further development, but it
 
 - Docker Desktop with Docker Compose
 
+### Clone repo
+  
+```bash
+git clone https://github.com/cont1n3nt/private-messenger.git
+
+cd private-messenger
+```
+
+
 ### Run With Docker
 
 ```bash
